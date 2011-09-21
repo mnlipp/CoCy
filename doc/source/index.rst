@@ -11,7 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   core/index
+   providers
    upnp/index
 
 Indices and tables

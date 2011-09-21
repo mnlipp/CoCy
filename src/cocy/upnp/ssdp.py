@@ -1,8 +1,6 @@
-'''
-
-
+"""
 .. codeauthor:: mnl
-'''
+"""
 from circuits.core.components import BaseComponent
 from circuits.core.handlers import handler
 from circuitsx.net.sockets import UDPMCastServer
@@ -11,7 +9,12 @@ from circuits.io.events import Write
 import platform
 from socket import gethostname, gethostbyname
 import time
-from cocy.upnp import SSDP_ADDR, SSDP_SCHEMAS, SSDP_PORT
+
+SSDP_PORT = 1900
+SSDP_ADDR = '239.255.255.250'
+
+SSDP_SCHEMAS = "urn:schemas-upnp-org"
+SSDP_DEVICE_SCHEMA = "urn:schemas-upnp-org:device-1-0"
 
 class SSDPServer(BaseComponent):
     '''The SSDP protocol server component

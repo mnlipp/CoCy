@@ -1,8 +1,6 @@
-'''
-
-
+"""
 .. codeauthor:: mnl
-'''
+"""
 from circuits.core.manager import Manager
 from circuits.core.debugger import Debugger
 from circuitsx.web.dispatchers.soap import SOAP
@@ -11,9 +9,9 @@ import sys
 from circuits.web.events import Request
 from circuits.web.controllers import Controller
 from circuits.web.servers import BaseServer
-from cocy.devices.misc import BinaryLight
 from cocy.upnp.server import UPnPDeviceServer
 from cocy.core.configuration import ConfigurationMonitor
+from cocy.samples.binary_light.misc import BinaryLight
 
 class ErrorHandler(Component):
     def exception(self, error_type, value, traceback, handler=None):

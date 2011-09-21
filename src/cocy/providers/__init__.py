@@ -37,24 +37,22 @@ class Manifest(object):
 
     
 class Provider(BaseComponent):
-    __metaclass__ = ABCMeta
-    
     """
     All components that want to be advertised in the network as providers of 
     some kind of service must inherited from this class. Note that components
     do not inherit from this class directly. Rather they inherit from
     one of the derived classes that further specify the kind of service
     that a component provides.
-    """
+    """    
+    __metaclass__ = ABCMeta
     
     def __init__(self, provider_manifest, **kwargs):
         """
-        Every instance has to provide a manifest that describes properties
-        of the components. This manifest is passed as parameter to the 
-        constructor.
+        The constructor initializes a new instance with the manifest that
+        is passed as parameter.
         
         :param provider_manifest: the manifest data
-        :type provider_manifest: Manifest
+        :type provider_manifest: :class:`Manifest`
         
         :param kwargs: optional keyword arguments that are forwarded to
                        the underlying component class from the circuit 
@@ -66,6 +64,8 @@ class Provider(BaseComponent):
     def provider_manifest(self):
         """
         Return the provider's manifest.
+        
+        :rtype: :class:`Manifest`
         """
         return self._provider_manifest
 
@@ -77,4 +77,8 @@ class Provider(BaseComponent):
         return self
         
 class BinarySwitch(Provider):
+    """
+    A :class:`BinarySwitch` represents anything that has an on and
+    an off state that is to be controlled remotely.
+    """
     __metaclass__ = ABCMeta

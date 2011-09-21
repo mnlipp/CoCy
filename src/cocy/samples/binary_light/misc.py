@@ -1,7 +1,7 @@
 """
 .. codeauthor:: mnl
 """
-from cocy.core.components import Manifest, BinarySwitch
+from cocy.providers import BinarySwitch, Manifest
 
 class BinaryLight(BinarySwitch):
     '''
