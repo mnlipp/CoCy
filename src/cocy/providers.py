@@ -9,6 +9,14 @@ class Manifest(object):
     """
     This class holds descriptive data about a provider, i.e. a 
     device or service that is to be made available in the network.
+
+    :param unique_id: every provider should provide a unique id
+                      that persists across program restarts. If the
+                      provider has no means to provide this id, it may
+                      also be ``None``. However, in case of improper 
+                      server shutdown, clients may then end up with 
+                      seemingly knowing several instances of the provider.
+    :type unique_id: string
     
     :param display_name: a user friendly name for the provider
     :type  display_name: string
@@ -27,8 +35,9 @@ class Manifest(object):
     :type  description: string
 
     """
-    def __init__(self, display_name, full_name = None,
+    def __init__(self, unique_id, display_name, full_name = None,
                  manufacturer=None, model_number=None, description=None):
+        self.unique_id = unique_id
         self.display_name = display_name
         self.full_name = full_name
         self.manufacturer = manufacturer
@@ -39,10 +48,13 @@ class Manifest(object):
 class Provider(BaseComponent):
     """
     All components that want to be advertised in the network as providers of 
-    some kind of service must inherited from this class. Note that components
-    do not inherit from this class directly. Rather they inherit from
-    one of the derived classes that further specify the kind of service
-    that a component provides.
+    some kind of service must inherited from this class. The class fulfills
+    two tasks:
+    
+    - provide a manifest
+    
+    - respond to ``provider_query`` events that are used to detect
+      providers
     """    
     __metaclass__ = ABCMeta
     
@@ -52,7 +64,7 @@ class Provider(BaseComponent):
         is passed as parameter.
         
         :param provider_manifest: the manifest data
-        :type provider_manifest: :class:`Manifest`
+        :type provider_manifest: :class:`cocy.providers.Manifest`
         
         :param kwargs: optional keyword arguments that are forwarded to
                        the underlying component class from the circuit 
@@ -65,20 +77,21 @@ class Provider(BaseComponent):
         """
         Return the provider's manifest.
         
-        :rtype: :class:`Manifest`
+        :rtype: :class:`cocy.providers.Manifest`
         """
         return self._provider_manifest
 
     @handler("provider_query")
     def _on_provider_query(self, event):
         """
-        Deliver this provider as result to query for providers.
+        A handler for event ``provider_query`` that returns
+        this provider.
         """
         return self
         
-class BinarySwitch(Provider):
+class BinarySwitch:
     """
-    A :class:`BinarySwitch` represents anything that has an on and
+    This class represents anything that has an on and
     an off state that is to be controlled remotely.
     """
     __metaclass__ = ABCMeta

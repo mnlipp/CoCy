@@ -25,24 +25,29 @@ class UPnPDevice(BaseController):
             self.services = services
 
     _mapping = {
-        Provider: Properties("Basic", 1, 1, 0, []),
+        # Provider: Properties("Basic", 1, 1, 0, []),
         BinarySwitch: Properties("BinaryLight", 0.9, 1, 0,
                                  [("SwitchPower:1", "SwitchPower:1")])
     }
 
-    def __init__(self, provider, config_id, service_map):
+    def __init__(self, provider, config_id, uuid_map, service_map):
         self.valid = False
+        self._provider = provider
+        manifest = provider.provider_manifest()
         for key, props in self._mapping.iteritems():
             if isinstance(provider, key):
                 self.valid = True
                 self._props = props
             break;
-        self._uuid = str(uuid4())
+        if manifest.unique_id and uuid_map.has_key(manifest.unique_id):
+            self._uuid = uuid_map[manifest.unique_id]
+        else:
+            self._uuid = str(uuid4())
+            uuid_map[manifest.unique_id] = self._uuid
         self._path = "/" + self.uuid
         replace_targets(self, {"#me": "/upnp-web" + self._path})
         super(UPnPDevice, self).__init__();
         self.config_id = config_id
-        manifest = provider.provider_manifest()
         self.friendly_name = manifest.display_name
         self.manufacturer = manifest.manufacturer or "cocy"
         self.model_description = manifest.description
@@ -64,6 +69,10 @@ class UPnPDevice(BaseController):
         ElementTree(desc).write(writer, xml_declaration=True,
                                 method="xml", encoding="utf-8")
         self.description = writer.result
+
+    @property
+    def provider(self):
+        return self._provider
 
     @property
     def uuid(self):

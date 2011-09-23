@@ -10,8 +10,8 @@ from circuits.web.events import Request
 from circuits.web.controllers import Controller
 from circuits.web.servers import BaseServer
 from cocy.upnp.server import UPnPDeviceServer
-from cocy.core.configuration import ConfigurationMonitor
 from cocy.samples.binary_light.misc import BinaryLight
+import os
 
 class ErrorHandler(Component):
     def exception(self, error_type, value, traceback, handler=None):
@@ -42,11 +42,15 @@ if __name__ == '__main__':
  
     manager = Manager()
     ErrorHandler().register(manager)
-    ConfigurationMonitor().register(manager)
     web_server = BaseServer(("", 8000)).register(manager)
     #disp = ScopedDispatcher().register(web_server)
     #Root().register(disp)
-    UPnPDeviceServer().register(manager)
+    
+    dir_name = os.path.expanduser('~/.cocy/samples')
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+    
+    UPnPDeviceServer(dir_name).register(manager)
     Debugger().register(manager)
     SOAP().register(manager)
     

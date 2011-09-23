@@ -9,6 +9,7 @@ from circuits.io.events import Write
 import platform
 from socket import gethostname, gethostbyname
 import time
+from circuits.core.timers import Timer
 
 SSDP_PORT = 1900
 SSDP_ADDR = '239.255.255.250'
@@ -80,33 +81,42 @@ class SSDPSender(BaseComponent):
         self._template_cache[name] = template
         return template
 
-    @handler("device-alive")
-    def _on_device_alive(self, upnp_device):
+    @handler("device_available")
+    def _on_device_available(self, event, upnp_device):
         self._message_env['CONFIGID'] = upnp_device.config_id
-        self._send_notify(upnp_device, root_device=True)
+        self._send_notify(upnp_device, "available", root_device=True)
+        event.times_sent = getattr(event, 'times_sent', 0) + 1
+        if event.times_sent < 3:
+            Timer(0.25, event, event.channel[1]).register(self)
    
-    def _send_notify(self, upnp_device, 
+    @handler("device_unavailable")
+    def _on_device_unavailable(self, event, upnp_device):
+        self._message_env['CONFIGID'] = upnp_device.config_id
+        self._send_notify(upnp_device, "unavailable", root_device=True)
+   
+    def _send_notify(self, upnp_device, type,
                      root_device = False, embedded_device = False):
         self._message_env['LOCATION'] = "http://" + self.hostaddr + ":" \
             + str(self.web_server_port) + "/" + upnp_device.uuid \
             + "/description.xml"
+        template = "notify-%s" % type
         # There is an extra announcement for root devices
         if root_device:
             self._message_env['NT'] = 'upnp:rootdevice'
             self._message_env['USN'] \
                 = 'uuid:' + upnp_device.uuid + '::upnp:rootdevice'
-            self._send_template("notify", self._message_env)
+            self._send_template(template, self._message_env)
         # Ordinary device announcement
         if root_device or embedded_device:
             self._message_env['NT'] = 'uuid:' + upnp_device.uuid
             self._message_env['USN'] = 'uuid:' + upnp_device.uuid
-            self._send_template("notify", self._message_env)
+            self._send_template(template, self._message_env)
         # Common announcement
         self._message_env['NT'] \
             = SSDP_SCHEMAS + ":device:" + upnp_device.type_ver
         self._message_env['USN'] = 'uuid:' + upnp_device.uuid \
             + "::" + self._message_env['NT']
-        self._send_template("notify", self._message_env)
+        self._send_template(template, self._message_env)
         
     def _send_template(self, templateName, data):
         template = self._get_template(templateName)

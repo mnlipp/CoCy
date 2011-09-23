@@ -11,21 +11,31 @@ from circuitsx.web.dispatchers.dispatcher import ScopeDispatcher
 from circuitsx.web.dispatchers.serverscopes import ServerScopes
 from circuits.web.controllers import BaseController, expose
 from cocy.upnp.ssdp import SSDPServer
+from cocy.providers import Provider
+import anydbm
+import os
 
-class DeviceAlive(Event):
-    channel = "device-alive"
-
+class DeviceAvailable(Event):
+    channel = "device_available"
+    
+class DeviceUnavailable(Event):
+    channel = "device_unavailable"
+    
 class UPnPDeviceServer(BaseComponent):
     """
-    The component that implements the UPnP device server.
+    This component keeps track of the :class:`cocy.providers.Provider` 
+    instances and creates or removes the corresponding 
+    :class:`cocy.upnp.devices.UPnPDevice` components.
+    
+    Notifications are sent when a new device is added 
+    (:class:`cocy.upnp.server.DeviceAvailable`) or removed
+    (:class:`cocy.upnp.server.DeviceUnavailable`)
     """
     channel = "upnp"
     
-    def __init__(self, channel=channel):
-        '''
-        Constructor
-        '''
+    def __init__(self, path, channel=channel):
         super(UPnPDeviceServer, self).__init__(channel=channel)
+        self._started = False
         
         # Create and register all service components
         self._service_types = {}
@@ -33,36 +43,65 @@ class UPnPDeviceServer(BaseComponent):
         self._service_types[service.type_ver] = service
 
         # Build a web (HTTP) server for handling requests. This is
-        # the server that will be used in announcements, so it has
+        # the server that will be announced by SSDP, so it has
         # no fixed port number.
         self.web_server = BaseServer(("", 0), channel="upnp-web").register(self)
-        # All requests will be prefixed with "/upnp-web/".
+        # All requests to the server will be prefixed with "/upnp-web/".
         ServerScopes(channel="upnp-web").register(self.web_server)
         # Dispatcher for "/upnp-web".
         disp = ScopeDispatcher(channel="upnp-web").register(self.web_server)
-        # Dummy root controller
+        # Dummy root controller prevents requests for nested resources
+        # from failing.
         DummyRoot().register(disp)
         
         # SSDP server. Needs to know the port used by the web server
+        # for announcements
         SSDPServer(self.web_server.port).register(self)
+        
+        # Initially empty list of providers
+        self._devices = []
+        
+        # The configuration id, incremented every time the 
+        # configuration changes
+        self.config_id = 1
+        
+        # Open the database for uuid persistence 
+        self._uuid_db = anydbm.open(os.path.join(path, 'upnp_uuids'), 'c')
 
-    @handler("provider_list")
-    def _on_provider_list(self, config_id, providers):
-        for provider in providers:
-            upnp_device = None
-            new_device = False
-            for c in provider.components:
-                if isinstance(c, UPnPDevice):
-                    upnp_device = c
-            if not upnp_device:
-                upnp_device = UPnPDevice(provider, config_id, \
-                    self._service_types).register(provider)
-                new_device = True
-            if not upnp_device.valid:
-                return
-            if new_device:
-                self.fireEvent(DeviceAlive(upnp_device), target="ssdp")
+    @handler("registered")
+    def _on_registered(self, component, manager):
+        if not isinstance(component, Provider):
+            return
+        device = UPnPDevice(component, self.config_id, \
+                   self._uuid_db, self._service_types).register(self)
+        if not device.valid:
+            return
+        self._devices.append(device)
+        if self._started:
+            self.fireEvent(DeviceAvailable(device), target="ssdp")
 
+    @handler("unregister")
+    def _on_unregister(self, component, manager):
+        if not isinstance(component, Provider):
+            return
+        
+
+    @handler("started")
+    def _on_started (self, component, mode):
+        self._started = True
+        for device in self._devices:
+            self.fireEvent(DeviceAvailable(device), target="ssdp")
+
+    @handler("stopped", target="*", priority=100, filter=True)
+    def _on_stopped(self, event, component):
+        if not self._started:
+            return
+        self._started = False
+        for device in self._devices:
+            self.fireEvent(DeviceUnavailable(device), target="ssdp")
+        self._uuid_db.close()
+        self.fireEvent(event)
+        return True
 
 class DummyRoot(BaseController):
     channel = "/upnp-web"
