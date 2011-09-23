@@ -12,6 +12,8 @@ from circuits.web.servers import BaseServer
 from cocy.upnp.server import UPnPDeviceServer
 from cocy.samples.binary_light.misc import BinaryLight
 import os
+from util.config import Configuration
+from util.application import Application
 
 class ErrorHandler(Component):
     def exception(self, error_type, value, traceback, handler=None):
@@ -21,6 +23,17 @@ class Root(Controller):
 
     def index(self):
         return "Hello World!"
+
+CONFIG = {
+    "logging": {
+        "type": "file",
+        "file": os.path.join("%(config_dir)s", "application.log"),
+        "level": "DEBUG",
+    },
+    "upnp": {
+        "max-age": "1800",
+    },
+}
 
 
 if __name__ == '__main__':
@@ -40,22 +53,22 @@ if __name__ == '__main__':
     Manager.fireEvent = _fix_fired_request
     Manager.fire = Manager.fireEvent
  
-    manager = Manager()
-    ErrorHandler().register(manager)
-    web_server = BaseServer(("", 8000)).register(manager)
+    application = Application("CoCy", CONFIG)
+    ErrorHandler().register(application)
+    web_server = BaseServer(("", 8000)).register(application)
     #disp = ScopedDispatcher().register(web_server)
     #Root().register(disp)
     
     dir_name = os.path.expanduser('~/.cocy/samples')
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
+
+    UPnPDeviceServer(dir_name).register(application)
+    Debugger().register(application)
+    SOAP().register(application)
     
-    UPnPDeviceServer(dir_name).register(manager)
-    Debugger().register(manager)
-    SOAP().register(manager)
-    
-    BinaryLight().register(manager)
+    BinaryLight().register(application)
     
     from circuits.tools import graph
-    print graph(manager)
-    manager.run()
+    print graph(application)
+    application.run()

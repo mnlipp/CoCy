@@ -3,6 +3,7 @@
 """
 from circuits.core.components import BaseComponent
 from circuits.core.events import Event
+import os
 try:
     import ConfigParser
 except ImportError:
@@ -11,12 +12,6 @@ except ImportError:
 class ConfigurationEvent(Event):
     """
     This event informs about the change of a configuration value.
-    The information is provided by instance variables (passed
-    to the handler as parameters).
-    
-    :ivar section: the section the configuration value belongs to    
-    :ivar option: the name of the configuration value that has changed
-    :ivar value: the new value 
     """
     def __init__(self, section, option, value):
         """
@@ -27,10 +22,11 @@ class ConfigurationEvent(Event):
         :type section: string
         :param option: the name of the configuration value that has changed
         :type option: string
-        :param value: the new value 
+        :param value: the new value
+        :type value: string 
         """
         super(ConfigurationEvent, self).__init__(section, option, value)
-        
+
 
 class Configuration(BaseComponent):
     """
@@ -83,15 +79,22 @@ class Configuration(BaseComponent):
                         (defaults to "config")
         """
         super(Configuration, self).__init__(channel=channel)
-        
+
+        self._filename = filename
         self._config = ConfigParser.SafeConfigParser(defaults=defaults)
-        try:
+        if os.path.exists(filename):
             self._config.read(filename)
-        except ConfigParser.Error:
+        else:
             for section in initial_config:
                 if not self._config.has_section(section):
                     self._config.add_section(section)
                     for option, value in initial_config[section].items():
-                        self.config.set(section, option, value)
-            with open(self._filename, "w") as f:
+                        self._config.set(section, option, value)
+            with open(filename, "w") as f:
                 self._config.write(f)
+
+    def get(self, section, option, default=None):
+        if self._config.has_option(section, option):
+            return self._config.get(section, option)
+        else:
+            return default

@@ -7,7 +7,7 @@ from uuid import uuid4
 from xml.etree.ElementTree import Element, SubElement, ElementTree
 from circuitsx.tools import replace_targets
 from circuits.web.controllers import expose, BaseController
-from cocy.providers import BinarySwitch, Provider
+from cocy.providers import BinarySwitch
 from cocy.upnp.ssdp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS
 
 class UPnPDevice(BaseController):
