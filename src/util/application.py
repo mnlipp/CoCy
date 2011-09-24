@@ -25,12 +25,19 @@ class Application(BaseComponent):
              initial_config = initial_config,
              defaults = defaults).register(self);
         # Create Logger Component using the values from the configuration
-        logtype = self._config.get("logging", "type", "stderr")
-        loglevel = self._config.get("logging", "level", "INFO")
+        log_opts = dict()
+        for opt in self._config.options("logging"):
+            log_opts[opt] = self._config.get("logging", opt)
+        logtype = log_opts.get("type", "stderr")
+        loglevel = log_opts.get("level", "INFO")
         loglevel = logging.getLevelName(loglevel)
-        logfile = self._config.get("logging", "file", "/dev/null")
-        if not os.path.abspath(logfile):
+        logfile = log_opts.get("file", None)
+        if logfile and not os.path.abspath(logfile):
             logfile = os.path.join(self._conf_dir, logfile)
-        self._log = Logger(logfile, name, logtype, loglevel).register(self)
+        self._log = Logger(logfile, name, logtype, loglevel,
+                           handler_args=log_opts).register(self)
         self.fire(Log(logging.INFO, 'Application ' + name + " started"))
-    
+
+    @property
+    def config_dir(self):
+        return self._conf_dir

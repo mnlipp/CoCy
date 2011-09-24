@@ -36,7 +36,7 @@ class UPnPDeviceServer(BaseComponent):
     def __init__(self, path, channel=channel):
         super(UPnPDeviceServer, self).__init__(channel=channel)
         self._started = False
-        
+
         # Create and register all service components
         self._service_types = {}
         service = UPnPService("SwitchPower", 1).register(self)
@@ -86,7 +86,7 @@ class UPnPDeviceServer(BaseComponent):
             return
         
 
-    @handler("started")
+    @handler("started", target="*")
     def _on_started (self, component, mode):
         self._started = True
         for device in self._devices:

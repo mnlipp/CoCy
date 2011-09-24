@@ -93,6 +93,9 @@ class Configuration(BaseComponent):
             with open(filename, "w") as f:
                 self._config.write(f)
 
+    def options(self, section):
+        return self._config.options(section)
+
     def get(self, section, option, default=None):
         if self._config.has_option(section, option):
             return self._config.get(section, option)

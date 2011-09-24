@@ -6,4 +6,6 @@ Utility classes
    :maxdepth: 1
 
    config
+   logger
+
 

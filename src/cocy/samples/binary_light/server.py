@@ -59,11 +59,7 @@ if __name__ == '__main__':
     #disp = ScopedDispatcher().register(web_server)
     #Root().register(disp)
     
-    dir_name = os.path.expanduser('~/.cocy/samples')
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-
-    UPnPDeviceServer(dir_name).register(application)
+    UPnPDeviceServer(application.config_dir).register(application)
     Debugger().register(application)
     SOAP().register(application)
     
