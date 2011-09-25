@@ -55,17 +55,34 @@ class LogSupport:
     before the log event is eventually handled.
 
     If more immediate logging is needed, the ``logging.Logger`` used by 
-    the ``Logger`` component can be provided to other components. 
-    Any component that inherits from ``LogSupport`` can access the 
-    basic logger as instance variable ``logger``.
+    the ``Logger`` component is made available to components that inherit
+    from ``LogSupport`` as a property.
     
-    Note that in order for the instance variable ``logger`` to be 
-    initialized properly, the ``Logger`` component must have been
-    created first.
+    :ivar logger: the ``logging.Logger`` injected into the component
+                  that inherits from ``LogSupport``
     
-    :ivar logger: the provided logger
+    Note that the ``logger`` property is set by the ``Logger``
+    component when a new component is registered. In order to benefit
+    from ``LogSupport`` the ``Logger`` component must therefore have
+    been created and registered first. Also, the ``logger`` property
+    is only available after the component that inherits from
+    ``LogSupport`` has been registered; it can therefore not be used
+    e.g. in the constructor.
     """
     logger = logging.getLogger()
+    _logger_channel_selection = "logger"
+    
+    def __init__(self, logger_channel = "logger"):
+        """
+        ``LogSupport`` serves mainly as a marker interface. In environments
+        where multiple ``Logger`` components exist, however, the question
+        arises which ``Logger`` assigns its ``logging.Logger`` to the
+        component. The constructor therefore supports the specification
+        of a selection property. A ``Logger`` component assigns its
+        ``logging.Logger`` only if that property matches its channel 
+        property.
+        """
+        self._logger_channel_selection = logger_channel
 
 class Logger(BaseComponent):
     """
@@ -82,31 +99,38 @@ class Logger(BaseComponent):
     channel = "logger"
 
     def __init__(self, filename, name, type, level,
-                 handler_args = dict(), format=None, channel=channel):
+                 format=None, handler_args = dict(), 
+                 handler=None, channel=channel):
         """
         The constructor initializes the logger component according
         to the given parameters.
         
-        :param filename: the name of the log file (or None if not logging
+        :param filename: the name of the log file (or ``None`` if not logging
                              to a file)
         :type filename: string
         
         :param name: the name of the logger, inserted in the log messages
+                     (usually the application's name)
         :type name: string
         
-        :param type: the type of logger to be used
+        :param type: the type of handler to be used
         :type type: string, one of "file", "watchedFile", "rotatingFile",
                     "timedRotatingFile", "NTEventLog", "syslog", "stderr"
                     
         :param level: the debug level to log
         :type level: integer, see predefined levels in module ``logging``
         
+        :param format: the format for the log messages
+        :type format: string
+        
         :param handler_args: keyword arguments passed to the logging handler
                              constructor
         :type handler_args: dict
-        
-        :param format: the format for the log messages
-        :type format: string
+
+        :param handler: a ``logging.Handler`` that is to
+            be used by the component instead of creating its own based
+            on ``type`` and ``handler_args``
+        :type handler: ``logging.Handler``
         
         :param channel: the channel
         """
@@ -114,62 +138,63 @@ class Logger(BaseComponent):
 
         self._logger = logging.getLogger(name)
 
-        type = type.lower()
+        if not handler:
+            type = type.lower()
         
-        known_dict = {"file": ["mode", "encoding", "delay"],
-                      "watchedfile": ["mode", "encoding", "delay"],
-                      "rotatingfile": ["mode", "maxBytes", "backupCount",
-                                       "encoding", "delay"],
-                      "timedrotatingfile": ["when", "interval", "backupCount",
-                                            "encoding", "delay", "utc"],
-                      "nteventlog": ["dllname", "logtype"],
-                      "syslog": ["address", "facility", "socktype"],
-                      "stderr": []}
-        if not known_dict.has_key(type):
-            raise ValueError
-        known_args = known_dict[type]
-        kwargs = dict()
-        for arg in handler_args.keys():
-            if arg in known_args:
-                if arg in ["delay", "utc"]:
-                    kwargs[arg] = (handler_args[arg] == "True")
-                elif arg in ["maxBytes", "backupCount", "interval", "port"]:
-                    kwargs[arg] = int(handler_args[arg])
+            known_dict = {"file": ["mode", "encoding", "delay"],
+                "watchedfile": ["mode", "encoding", "delay"],
+                "rotatingfile": ["mode", "maxBytes", "backupCount",
+                                 "encoding", "delay"],
+                "timedrotatingfile": ["when", "interval", "backupCount",
+                                      "encoding", "delay", "utc"],
+                "nteventlog": ["dllname", "logtype"],
+                "syslog": ["address", "facility", "socktype"],
+                "stderr": []}
+            if not known_dict.has_key(type):
+                raise ValueError
+            known_args = known_dict[type]
+            kwargs = dict()
+            for arg in handler_args.keys():
+                if arg in known_args:
+                    if arg in ["delay", "utc"]:
+                        kwargs[arg] = (handler_args[arg] == "True")
+                    elif arg in ["maxBytes", "backupCount", "interval", "port"]:
+                        kwargs[arg] = int(handler_args[arg])
+                    else:
+                        kwargs[arg] = handler_args[arg]
+        
+            if type == "file":
+                handler = FileHandler(filename, **kwargs)
+            elif type in ["watchedfile"]:
+                def h(mode = 'a', encoding = None, delay = False):
+                    return WatchedFileHandler \
+                        (filename, mode, encoding, delay)
+                handler = h(**kwargs)
+            elif type in ["rotatingfile"]:
+                handler = RotatingFileHandler(filename, **kwargs)
+            elif type in ["timedrotatingfile"]:
+                handler = TimedRotatingFileHandler(filename, **kwargs)
+            elif type in ["nteventlog"]:
+                # Requires win32 extensions
+                handler = NTEventLogHandler(filename, **kwargs)
+            elif type in ["syslog"]:
+                if kwargs.has_key("address"):
+                    address = kwargs.get("address")
+                    hp = address.split(":", 2)
+                    if len(hp) > 1:
+                        kwargs["address"] = (hp[0], int(hp[1]))
                 else:
-                    kwargs[arg] = handler_args[arg]
-        
-        if type == "file":
-            hdlr = FileHandler(filename, **kwargs)
-        elif type in ["watchedfile"]:
-            def h(mode = 'a', encoding = None, delay = False):
-                return WatchedFileHandler \
-                    (filename, mode, encoding, delay)
-            hdlr = h(**kwargs)
-        elif type in ["rotatingfile"]:
-            hdlr = RotatingFileHandler(filename, **kwargs)
-        elif type in ["timedrotatingfile"]:
-            hdlr = TimedRotatingFileHandler(filename, **kwargs)
-        elif type in ["nteventlog"]:
-            # Requires win32 extensions
-            hdlr = NTEventLogHandler(filename, **kwargs)
-        elif type in ["syslog"]:
-            if kwargs.has_key("address"):
-                address = kwargs.get("address")
-                hp = address.split(":", 2)
-                if len(hp) > 1:
-                    kwargs["address"] = (hp[0], int(hp[1]))
+                    kwargs["address"] = "/dev/log"
+                if kwargs.has_key("socktype"):
+                    if kwargs["socktype"].lower() == "tcp":
+                        kwargs["socktype"] = socket.SOCK_STREAM
+                    else:
+                        kwargs["socktype"] = socket.SOCK_DGRAM
+                handler = SysLogHandler(**kwargs)
+            elif type in ["stderr"]:
+                handler = StreamHandler(sys.stderr, **kwargs)
             else:
-                kwargs["address"] = "/dev/log"
-            if kwargs.has_key("socktype"):
-                if kwargs["socktype"].lower() == "tcp":
-                    kwargs["socktype"] = socket.SOCK_STREAM
-                else:
-                    kwargs["socktype"] = socket.SOCK_DGRAM
-            hdlr = SysLogHandler(**kwargs)
-        elif type in ["stderr"]:
-            hdlr = StreamHandler(sys.stderr, **kwargs)
-        else:
-            raise ValueError
+                raise ValueError
         
         self._logger.setLevel(level)
         if not format:
@@ -179,8 +204,8 @@ class Logger(BaseComponent):
                 format = "%(asctime)s " + format
 
         formatter = logging.Formatter(format)
-        hdlr.setFormatter(formatter)
-        self._logger.addHandler(hdlr)
+        handler.setFormatter(formatter)
+        self._logger.addHandler(handler)
 
     @handler("log")
     def _on_log(self, event, level, msg, *args, **kwargs):
@@ -193,5 +218,6 @@ class Logger(BaseComponent):
 
     @handler("registered", target="*")
     def _on_registered(self, component, manager):
-        if isinstance(component, LogSupport):
+        if isinstance(component, LogSupport) \
+            and component._logger_channel_selection == self.channel:
             component.logger = self._logger
