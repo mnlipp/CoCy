@@ -22,7 +22,6 @@ Utility classes
 .. toctree::
    :maxdepth: 1
 
+   appl
    config
    logger
-
-

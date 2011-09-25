@@ -87,7 +87,14 @@ class SSDPSender(BaseComponent):
                 self.hostaddr = gethostbyname(gethostname() + ".")
             except:
                 pass
-        
+
+    @handler("config_value", target="*")
+    def _on_config_value(self, section, option, value):
+        if not section == "upnp":
+            return
+        if option == "max-age":
+            self._message_expiry = int(value)
+                    
     def _get_template(self, name):
         if self._template_cache.has_key(name):
             return self._template_cache[name]

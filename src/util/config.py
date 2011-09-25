@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from circuits.core.handlers import handler
 """
 .. codeauthor:: mnl
 """
@@ -24,10 +25,13 @@ try:
 except ImportError:
     import ConfigParser
 
-class ConfigurationEvent(Event):
+class ConfigValue(Event):
     """
     This event informs about the change of a configuration value.
     """
+    
+    channel = "config_value"
+    
     def __init__(self, section, option, value):
         """
         The constructor initializes a new instance with the given
@@ -40,7 +44,16 @@ class ConfigurationEvent(Event):
         :param value: the new value
         :type value: string 
         """
-        super(ConfigurationEvent, self).__init__(section, option, value)
+        super(ConfigValue, self).__init__(section, option, value)
+
+class EmitConfig(Event):
+    """
+    This event causes the ``Configuration`` to emit the configuration
+    values.
+    """
+    
+    channel = "emit_config"
+    target = "configuration"
 
 
 class Configuration(BaseComponent):
@@ -48,13 +61,13 @@ class Configuration(BaseComponent):
     This component provides a repository for configuration values.
     
     Configuration values are propagated on the component's channel
-    (defaults to "config")
-    as :class:`util.config.ConfigurationEvent` objects. Every 
+    (defaults to "configuration")
+    as :class:`util.config.ConfigValue` objects. Every 
     received event is merged with the already existing configuration 
     and saved in an ini-style configuration file.
     
     Components that depend on configuration values define handlers
-    for ``ConfigurationEvent`` objects as well 
+    for ``ConfigValue`` objects as well 
     and adapt themselves to the values propagated.
     
     During bootstrap, the configuration values have to be restored
@@ -66,13 +79,14 @@ class Configuration(BaseComponent):
     and emits all current configuration values before it.
     
     If your application requires a different behavior, you can also
-    fire a :class:`util.config.EmitConfiguration` event. This causes the 
+    fire a :class:`util.config.EmitValues` event or call
+    mathod ``emit_values``. This causes the 
     :class:`util.config.Configuration` to emit the configuration values 
     immediately. If this event is received before the "started" event, no
-    configurations values will be fired in response to the "startup" event.    
+    configurations values will be fired in response to the "started" event.    
     """
     
-    channel = "config"
+    channel = "configuration"
     
     def __init__(self, filename, initial_config=None, 
                  defaults=None, channel=channel):
@@ -94,9 +108,11 @@ class Configuration(BaseComponent):
                         (defaults to "config")
         """
         super(Configuration, self).__init__(channel=channel)
+        self._emit_done = False
 
         self._filename = filename
         self._config = ConfigParser.SafeConfigParser(defaults=defaults)
+        self._config.optionxform = str
         if os.path.exists(filename):
             self._config.read(filename)
         else:
@@ -104,9 +120,38 @@ class Configuration(BaseComponent):
                 if not self._config.has_section(section):
                     self._config.add_section(section)
                     for option, value in initial_config[section].items():
-                        self._config.set(section, option, value)
+                        self._config.set(section, option, str(value))
             with open(filename, "w") as f:
                 self._config.write(f)
+
+    def emit_values(self):
+        for section in self._config.sections():
+            for option in self._config.options(section):
+                self.fire(ConfigValue
+                          (section, option, self._config.get(section, option)))
+        self._emit_done = True
+
+    @handler("emit_config")
+    def _on_emit_config(self):
+        self.emit_values()
+
+    @handler("started", target="*", filter=True, priority=999)
+    def _on_started(self, event, component, mode):
+        if not self._emit_done:
+            self.emit_values()
+            self.fire(event)
+            return True
+
+    @handler("config_value")
+    def _on_config_value(self, section, option, value):
+        if self._config.has_option(section, option):
+            if self._config.get(section, option) == str(value):
+                return
+        if not self._config.has_section(section):
+            self._config.add_section(section)
+        self._config.set(section, option, str(value))
+        with open(self._filename, "w") as f:
+            self._config.write(f)
 
     def options(self, section):
         return self._config.options(section)

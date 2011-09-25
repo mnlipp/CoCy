@@ -13,9 +13,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-.. codeauthor:: mnl
-"""
 from circuits.core.components import BaseComponent
 from cocy.upnp.services import UPnPService
 from cocy.upnp.devices import UPnPDevice
@@ -29,6 +26,9 @@ from cocy.upnp.ssdp import SSDPServer
 from cocy.providers import Provider
 import anydbm
 import os
+"""
+.. codeauthor:: mnl
+"""
 
 class DeviceAvailable(Event):
     channel = "device_available"
@@ -83,6 +83,7 @@ class UPnPDeviceServer(BaseComponent):
         # Open the database for uuid persistence 
         self._uuid_db = anydbm.open(os.path.join(path, 'upnp_uuids'), 'c')
 
+
     @handler("registered")
     def _on_registered(self, component, manager):
         if not isinstance(component, Provider):
@@ -101,7 +102,7 @@ class UPnPDeviceServer(BaseComponent):
             return
         
 
-    @handler("started", target="*")
+    @handler("started", target="application")
     def _on_started (self, component, mode):
         self._started = True
         for device in self._devices:

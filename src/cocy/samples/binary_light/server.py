@@ -27,7 +27,6 @@ from circuits.web.servers import BaseServer
 from cocy.upnp.server import UPnPDeviceServer
 from cocy.samples.binary_light.misc import BinaryLight
 import os
-from util.config import Configuration
 from util.application import Application
 
 class ErrorHandler(Component):
@@ -41,8 +40,10 @@ class Root(Controller):
 
 CONFIG = {
     "logging": {
-        "type": "file",
-        "file": os.path.join("%(config_dir)s", "application.log"),
+        "type": "TimedRotatingFile",
+        "file": os.path.join("%(log_dir)s", "application.log"),
+        "when": "midnight",
+        "backupCount": 7,
         "level": "DEBUG",
     },
     "upnp": {
@@ -74,7 +75,7 @@ if __name__ == '__main__':
     #disp = ScopedDispatcher().register(web_server)
     #Root().register(disp)
     
-    UPnPDeviceServer(application.config_dir).register(application)
+    UPnPDeviceServer(application.app_dir).register(application)
     Debugger().register(application)
     SOAP().register(application)
     

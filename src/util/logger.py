@@ -129,8 +129,8 @@ class Logger(BaseComponent):
         :type name: string
         
         :param type: the type of handler to be used
-        :type type: string, one of "file", "watchedFile", "rotatingFile",
-                    "timedRotatingFile", "NTEventLog", "syslog", "stderr"
+        :type type: string, one of "file", "WatchedFile", "RotatingFile",
+                    "TimedRotatingFile", "NTEventLog", "Syslog", "Stderr"
                     
         :param level: the debug level to log
         :type level: integer, see predefined levels in module ``logging``
