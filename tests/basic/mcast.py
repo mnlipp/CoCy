@@ -1,13 +1,4 @@
 #!/usr/bin/env python
-#
-# Send/receive UDP multicast packets.
-# Requires that your OS kernel supports IP multicast.
-#
-# Usage:
-#   mcast -s (sender, IPv4)
-#   mcast -s -6 (sender, IPv6)
-#   mcast    (receivers, IPv4)
-#   mcast  -6  (receivers, IPv6)
 
 MYPORT = 1900
 MYGROUP_4 = '239.255.255.250'
