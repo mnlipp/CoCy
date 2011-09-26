@@ -22,7 +22,7 @@ from circuits.web.servers import BaseServer
 from circuitsx.web.dispatchers.dispatcher import ScopeDispatcher
 from circuitsx.web.dispatchers.serverscopes import ServerScopes
 from circuits.web.controllers import BaseController, expose
-from cocy.upnp.ssdp import SSDPServer
+from cocy.upnp.ssdp import SSDPTranceiver
 from cocy.providers import Provider
 import anydbm
 import os
@@ -36,7 +36,7 @@ class DeviceAvailable(Event):
 class DeviceUnavailable(Event):
     channel = "device_unavailable"
     
-class UPnPDeviceServer(BaseComponent):
+class UPnPDeviceManager(BaseComponent):
     """
     This component keeps track of the :class:`cocy.providers.Provider` 
     instances and creates or removes the corresponding 
@@ -49,7 +49,7 @@ class UPnPDeviceServer(BaseComponent):
     channel = "upnp"
     
     def __init__(self, path, channel=channel):
-        super(UPnPDeviceServer, self).__init__(channel=channel)
+        super(UPnPDeviceManager, self).__init__(channel=channel)
         self._started = False
 
         # Create and register all service components
@@ -71,7 +71,7 @@ class UPnPDeviceServer(BaseComponent):
         
         # SSDP server. Needs to know the port used by the web server
         # for announcements
-        SSDPServer(self.web_server.port).register(self)
+        SSDPTranceiver(self.web_server.port).register(self)
         
         # Initially empty list of providers
         self._devices = []
@@ -94,7 +94,7 @@ class UPnPDeviceServer(BaseComponent):
             return
         self._devices.append(device)
         if self._started:
-            self.fireEvent(DeviceAvailable(device), target="ssdp")
+            self.fireEvent(DeviceAvailable(device))
 
     @handler("unregister")
     def _on_unregister(self, component, manager):
@@ -106,7 +106,7 @@ class UPnPDeviceServer(BaseComponent):
     def _on_started (self, component, mode):
         self._started = True
         for device in self._devices:
-            self.fireEvent(DeviceAvailable(device), target="ssdp")
+            self.fireEvent(DeviceAvailable(device))
 
     @handler("stopped", target="*", priority=100, filter=True)
     def _on_stopped(self, event, component):
@@ -114,7 +114,7 @@ class UPnPDeviceServer(BaseComponent):
             return
         self._started = False
         for device in self._devices:
-            self.fireEvent(DeviceUnavailable(device), target="ssdp")
+            self.fireEvent(DeviceUnavailable(device))
         self._uuid_db.close()
         self.fireEvent(event)
         return True

@@ -29,8 +29,8 @@ Contents:
    :maxdepth: 2
 
    providers
-   util/index
    upnp/index
+   util/index
 
 Indices and tables
 ==================

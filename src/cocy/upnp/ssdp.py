@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from circuits.core.events import Event
 """
 .. codeauthor:: mnl
 """
@@ -32,7 +33,7 @@ SSDP_ADDR = '239.255.255.250'
 SSDP_SCHEMAS = "urn:schemas-upnp-org"
 SSDP_DEVICE_SCHEMA = "urn:schemas-upnp-org:device-1-0"
 
-class SSDPServer(BaseComponent):
+class SSDPTranceiver(BaseComponent):
     '''The SSDP protocol server component
     '''
 
@@ -43,17 +44,20 @@ class SSDPServer(BaseComponent):
         Constructor
         '''
         kwargs.setdefault("channel", self.channel)
-        super(SSDPServer, self).__init__(**kwargs)
+        super(SSDPTranceiver, self).__init__(**kwargs)
 
-        self._config_id = None
- 
-        # Our associated SSDP message sender
-        SSDPSender(web_server_port).register(self)
-        
-        # 
+        # The underlying network connection, used by both the sender
+        # and the receiver 
         self._server = UDPMCastServer((SSDP_ADDR, SSDP_PORT),
                                      **kwargs).register(self)
         self._server.setTTL(2)
+
+        # Our associated SSDP message sender
+        SSDPSender(web_server_port).register(self)
+        
+        # Our associated SSDP message receiver
+        SSDPReceiver().register(self)
+
 
 
 class SSDPSender(BaseComponent):
@@ -66,6 +70,7 @@ class SSDPSender(BaseComponent):
     _message_env = {}
     _message_expiry = 1800
     _boot_id = int(time.time())
+    _timers = dict()
 
     def __init__(self, web_server_port, channel=channel):
         '''
@@ -79,7 +84,7 @@ class SSDPSender(BaseComponent):
         self._message_env['BOOTID'] = self._boot_id
         self._message_env['SERVER'] \
             = (platform.system() + '/' + platform.release()
-               + " UPnP/1.1 cocy/0.1")
+               + " UPnP/1.1 CoCy/0.1")
         self._message_env['CACHE-CONTROL'] = self._message_expiry
         self.hostaddr = gethostbyname(gethostname())
         if self.hostaddr.startswith("127.") and not "." in gethostname():
@@ -88,36 +93,36 @@ class SSDPSender(BaseComponent):
             except:
                 pass
 
-    @handler("config_value", target="*")
+    @handler("config_value", target="configuration")
     def _on_config_value(self, section, option, value):
         if not section == "upnp":
             return
         if option == "max-age":
             self._message_expiry = int(value)
-                    
-    def _get_template(self, name):
-        if self._template_cache.has_key(name):
-            return self._template_cache[name]
-        file = open(os.path.join(self._template_dir, name))
-        template = file.read()
-        self._template_cache[name] = template
-        return template
 
-    @handler("device_available")
+    @handler("device_available", target="upnp")
     def _on_device_available(self, event, upnp_device):
         self._message_env['CONFIGID'] = upnp_device.config_id
-        self._send_notify(upnp_device, "available", root_device=True)
-        event.times_sent = getattr(event, 'times_sent', 0) + 1
-        if event.times_sent < 3:
-            Timer(0.25, event, event.channel[1]).register(self)
+        self._send_notification(upnp_device, "available", root_device=True)
+        if getattr(event, 'times_sent', 0) < 3:
+            self._timers[upnp_device.uuid] \
+                = Timer(0.25, event, event.channel[1]).register(self)
+            event.times_sent = getattr(event, 'times_sent', 0) + 1
+        else:
+            self._timers[upnp_device.uuid] \
+                = Timer(self._message_expiry / 4,
+                        event, event.channel[1]).register(self)
    
-    @handler("device_unavailable")
+    @handler("device_unavailable", target="upnp")
     def _on_device_unavailable(self, event, upnp_device):
+        if self._timers.has_key(upnp_device.uuid):
+            self._timers[upnp_device.uuid].unregister()
+            del self._timers[upnp_device.uuid]
         self._message_env['CONFIGID'] = upnp_device.config_id
-        self._send_notify(upnp_device, "unavailable", root_device=True)
+        self._send_notification(upnp_device, "unavailable", root_device=True)
    
-    def _send_notify(self, upnp_device, type,
-                     root_device = False, embedded_device = False):
+    def _send_notification(self, upnp_device, type,
+                           root_device = False, embedded_device = False):
         self._message_env['LOCATION'] = "http://" + self.hostaddr + ":" \
             + str(self.web_server_port) + "/" + upnp_device.uuid \
             + "/description.xml"
@@ -148,4 +153,37 @@ class SSDPSender(BaseComponent):
             headers = headers + line + "\r\n"
         headers = headers + "\r\n"
         self.fireEvent(Write((SSDP_ADDR, SSDP_PORT), headers))
+                    
+    def _get_template(self, name):
+        if self._template_cache.has_key(name):
+            return self._template_cache[name]
+        file = open(os.path.join(self._template_dir, name))
+        template = file.read()
+        self._template_cache[name] = template
+        return template
 
+
+class SearchEvent(Event):
+    
+    channel = "search_event"
+    
+    def __init__(self, enquirer, query, **kwargs):
+        super(SearchEvent, self).__init__(enquirer, query, **kwargs)
+
+class SSDPReceiver(BaseComponent):
+
+    channel = "ssdp"
+
+    def __init__(self, channel = channel):
+        super(SSDPReceiver, self).__init__(channel=channel)
+
+    @handler("read")
+    def _on_read(self, address, data):
+        lines = data.splitlines()
+        if lines[0].startswith("M-SEARCH "):
+            search_target = None
+            for line in lines[1:len(lines)-1]:
+                if line.startswith("ST:"):
+                    search_target = line.split(':', 1)[1].strip()
+                    break
+            self.fire(SearchEvent(address, search_target))

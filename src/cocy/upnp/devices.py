@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from circuits.core.handlers import handler
 """
 .. codeauthor:: mnl
 """
@@ -25,7 +26,7 @@ from cocy.upnp.ssdp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS
 
 class UPnPDevice(BaseController):
 
-    channel = "ssdp"
+    channel = "upnp"
     
     class Properties(object):
         def __init__(self, type, ver, spec_ver_major, spec_ver_minor,
@@ -161,3 +162,12 @@ class UPnPDevice(BaseController):
     def _on_description(self):
         self.response.headers["Content-Type"] = "text/xml"
         return self.description
+
+    @handler("search_event", target="ssdp")
+    def _on_ssdp_search(self, enquirer, query):
+        # TODO: Incomplete
+        if query == "ssdp:all" \
+            or query == "upnp:rootdevice" \
+            or query == ("uuid:%s" % self._uuid):
+            pass
+        
