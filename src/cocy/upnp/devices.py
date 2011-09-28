@@ -1,20 +1,21 @@
-# This file is part of the CoCy program.
-# Copyright (C) 2011 Michael N. Lipp
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from circuits.core.handlers import handler
 """
+..
+   This file is part of the CoCy program.
+   Copyright (C) 2011 Michael N. Lipp
+   
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 .. codeauthor:: mnl
 """
 from uuid import uuid4
@@ -22,7 +23,25 @@ from xml.etree.ElementTree import Element, SubElement, ElementTree
 from circuitsx.tools import replace_targets
 from circuits.web.controllers import expose, BaseController
 from cocy.providers import BinarySwitch
-from cocy.upnp.ssdp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS
+from circuits.core.handlers import handler
+from circuits.core.events import Event
+from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS
+
+class UPnPDeviceQuery(Event):
+    
+    channel = "upnp_device_query"
+    
+    def __init__(self, filter, inquirer, **kwargs):
+        super(UPnPDeviceQuery, self).__init__(filter, inquirer, **kwargs)
+
+
+class UPnPDeviceMatch(Event):
+    
+    channel = "upnp_device_match"
+    
+    def __init__(self, device, inquirer, **kwargs):
+        super(UPnPDeviceMatch, self).__init__(device, inquirer, **kwargs)
+
 
 class UPnPDevice(BaseController):
 
@@ -91,6 +110,10 @@ class UPnPDevice(BaseController):
     @property
     def uuid(self):
         return self._uuid
+
+    @property
+    def root_device(self):
+        return True # TODO:
 
     def __getattr__(self, name):
         if not name.startswith("_") and hasattr(self._props, name):
@@ -163,11 +186,8 @@ class UPnPDevice(BaseController):
         self.response.headers["Content-Type"] = "text/xml"
         return self.description
 
-    @handler("search_event", target="ssdp")
-    def _on_ssdp_search(self, enquirer, query):
-        # TODO: Incomplete
-        if query == "ssdp:all" \
-            or query == "upnp:rootdevice" \
-            or query == ("uuid:%s" % self._uuid):
-            pass
-        
+    @handler("upnp_device_query")
+    def _on_upnp_device_query(self, filter, inquirer):
+        if filter(self):
+            self.fire(UPnPDeviceMatch(self, inquirer))
+

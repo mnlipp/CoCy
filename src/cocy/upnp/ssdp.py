@@ -1,22 +1,24 @@
-# This file is part of the CoCy program.
-# Copyright (C) 2011 Michael N. Lipp
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from circuits.core.events import Event
 """
+..
+   This file is part of the CoCy program.
+   Copyright (C) 2011 Michael N. Lipp
+   
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 .. codeauthor:: mnl
 """
+from circuits.core.events import Event
 from circuits.core.components import BaseComponent
 from circuits.core.handlers import handler
 from circuitsx.net.sockets import UDPMCastServer
@@ -26,12 +28,9 @@ import platform
 from socket import gethostname, gethostbyname
 import time
 from circuits.core.timers import Timer
-
-SSDP_PORT = 1900
-SSDP_ADDR = '239.255.255.250'
-
-SSDP_SCHEMAS = "urn:schemas-upnp-org"
-SSDP_DEVICE_SCHEMA = "urn:schemas-upnp-org:device-1-0"
+from cocy.upnp.devices import UPnPDeviceQuery
+from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS
+import datetime
 
 class SSDPTranceiver(BaseComponent):
     '''The SSDP protocol server component
@@ -85,7 +84,6 @@ class SSDPSender(BaseComponent):
         self._message_env['SERVER'] \
             = (platform.system() + '/' + platform.release()
                + " UPnP/1.1 CoCy/0.1")
-        self._message_env['CACHE-CONTROL'] = self._message_expiry
         self.hostaddr = gethostbyname(gethostname())
         if self.hostaddr.startswith("127.") and not "." in gethostname():
             try:
@@ -102,7 +100,6 @@ class SSDPSender(BaseComponent):
 
     @handler("device_available", target="upnp")
     def _on_device_available(self, event, upnp_device):
-        self._message_env['CONFIGID'] = upnp_device.config_id
         self._send_notification(upnp_device, "available", root_device=True)
         if getattr(event, 'times_sent', 0) < 3:
             self._timers[upnp_device.uuid] \
@@ -118,11 +115,19 @@ class SSDPSender(BaseComponent):
         if self._timers.has_key(upnp_device.uuid):
             self._timers[upnp_device.uuid].unregister()
             del self._timers[upnp_device.uuid]
-        self._message_env['CONFIGID'] = upnp_device.config_id
         self._send_notification(upnp_device, "unavailable", root_device=True)
    
+    @handler("upnp_device_match", target="upnp")
+    def _on_device_match(self, upnp_device, inquirer):
+        self._send_notification(upnp_device, "response", root_device=True)
+        pass
+        
     def _send_notification(self, upnp_device, type,
                            root_device = False, embedded_device = False):
+        self._message_env['CACHE-CONTROL'] = self._message_expiry
+        self._message_env['CONFIGID'] = upnp_device.config_id
+        self._message_env['DATE'] \
+            = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
         self._message_env['LOCATION'] = "http://" + self.hostaddr + ":" \
             + str(self.web_server_port) + "/" + upnp_device.uuid \
             + "/description.xml"
@@ -163,13 +168,6 @@ class SSDPSender(BaseComponent):
         return template
 
 
-class SearchEvent(Event):
-    
-    channel = "search_event"
-    
-    def __init__(self, enquirer, query, **kwargs):
-        super(SearchEvent, self).__init__(enquirer, query, **kwargs)
-
 class SSDPReceiver(BaseComponent):
 
     channel = "ssdp"
@@ -183,7 +181,12 @@ class SSDPReceiver(BaseComponent):
         if lines[0].startswith("M-SEARCH "):
             search_target = None
             for line in lines[1:len(lines)-1]:
-                if line.startswith("ST:"):
-                    search_target = line.split(':', 1)[1].strip()
-                    break
-            self.fire(SearchEvent(address, search_target))
+                if not line.startswith("ST:"):
+                    continue
+                search_target = line.split(':', 1)[1].strip()
+                f = lambda dev: True
+                # TODO: add criteria
+                if search_target == "upnp:rootdevice":
+                    f = lambda dev: dev.root_device
+                self.fire(UPnPDeviceQuery(f, address), target="upnp")                        
+                return
