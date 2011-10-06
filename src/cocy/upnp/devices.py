@@ -24,26 +24,10 @@ from circuitsx.tools import replace_targets
 from circuits.web.controllers import expose, BaseController
 from cocy.providers import BinarySwitch
 from circuits.core.handlers import handler
-from circuits.core.events import Event
 from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS
+from util.misc import Queryable
 
-class UPnPDeviceQuery(Event):
-    
-    channel = "upnp_device_query"
-    
-    def __init__(self, filter, inquirer, **kwargs):
-        super(UPnPDeviceQuery, self).__init__(filter, inquirer, **kwargs)
-
-
-class UPnPDeviceMatch(Event):
-    
-    channel = "upnp_device_match"
-    
-    def __init__(self, device, inquirer, **kwargs):
-        super(UPnPDeviceMatch, self).__init__(device, inquirer, **kwargs)
-
-
-class UPnPDevice(BaseController):
+class UPnPDevice(BaseController, Queryable):
 
     channel = "upnp"
     
@@ -185,9 +169,4 @@ class UPnPDevice(BaseController):
     def _on_description(self):
         self.response.headers["Content-Type"] = "text/xml"
         return self.description
-
-    @handler("upnp_device_query")
-    def _on_upnp_device_query(self, filter, inquirer):
-        if filter(self):
-            self.fire(UPnPDeviceMatch(self, inquirer))
 

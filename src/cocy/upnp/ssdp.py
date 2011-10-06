@@ -18,7 +18,6 @@
 
 .. codeauthor:: mnl
 """
-from circuits.core.events import Event
 from circuits.core.components import BaseComponent
 from circuits.core.handlers import handler
 from circuitsx.net.sockets import UDPMCastServer
@@ -28,9 +27,10 @@ import platform
 from socket import gethostname, gethostbyname
 import time
 from circuits.core.timers import Timer
-from cocy.upnp.devices import UPnPDeviceQuery
 from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS
 import datetime
+from util.misc import ComponentQuery
+from circuits.core.events import Event
 
 class SSDPTranceiver(BaseComponent):
     '''The SSDP protocol server component
@@ -100,7 +100,7 @@ class SSDPSender(BaseComponent):
 
     @handler("device_available", target="upnp")
     def _on_device_available(self, event, upnp_device):
-        self._send_notification(upnp_device, "available", root_device=True)
+        self._send_device_messages(upnp_device, "available")
         if getattr(event, 'times_sent', 0) < 3:
             self._timers[upnp_device.uuid] \
                 = Timer(0.25, event, event.channel[1]).register(self)
@@ -115,15 +115,22 @@ class SSDPSender(BaseComponent):
         if self._timers.has_key(upnp_device.uuid):
             self._timers[upnp_device.uuid].unregister()
             del self._timers[upnp_device.uuid]
-        self._send_notification(upnp_device, "unavailable", root_device=True)
+        self._send_device_messages(upnp_device, "unavailable")
    
-    @handler("upnp_device_match", target="upnp")
-    def _on_device_match(self, upnp_device, inquirer):
-        self._send_notification(upnp_device, "response", root_device=True)
-        pass
-        
-    def _send_notification(self, upnp_device, type,
-                           root_device = False, embedded_device = False):
+    @handler("device_match")
+    def _on_device_match(self, upnp_device, inquirer, search_target):
+        if search_target == "ssdp:all":
+            self._send_device_messages(upnp_device, "result", inquirer)
+        else:
+            self._update_message_env(upnp_device)
+            if search_target == "upnp:rootdevice":
+                self._send_root_message(upnp_device, "notify-result", inquirer)
+            elif search_target.startswith("uuid:"):
+                self._send_uuid_message(upnp_device, "notify-result", inquirer)
+            elif search_target.startswith("urn:"):
+                self._send_type_message(upnp_device, "notify-result", inquirer)
+            
+    def _update_message_env(self, upnp_device):
         self._message_env['CACHE-CONTROL'] = self._message_expiry
         self._message_env['CONFIGID'] = upnp_device.config_id
         self._message_env['DATE'] \
@@ -131,33 +138,48 @@ class SSDPSender(BaseComponent):
         self._message_env['LOCATION'] = "http://" + self.hostaddr + ":" \
             + str(self.web_server_port) + "/" + upnp_device.uuid \
             + "/description.xml"
+        
+    def _send_device_messages(self, upnp_device, type, 
+                              to=(SSDP_ADDR, SSDP_PORT)):
+        self._update_message_env(upnp_device)
         template = "notify-%s" % type
         # There is an extra announcement for root devices
-        if root_device:
-            self._message_env['NT'] = 'upnp:rootdevice'
-            self._message_env['USN'] \
-                = 'uuid:' + upnp_device.uuid + '::upnp:rootdevice'
-            self._send_template(template, self._message_env)
-        # Ordinary device announcement
-        if root_device or embedded_device:
-            self._message_env['NT'] = 'uuid:' + upnp_device.uuid
-            self._message_env['USN'] = 'uuid:' + upnp_device.uuid
-            self._send_template(template, self._message_env)
-        # Common announcement
-        self._message_env['NT'] \
-            = SSDP_SCHEMAS + ":device:" + upnp_device.type_ver
+        if upnp_device.root_device:
+            self._send_root_message(upnp_device, template, to)
+        # Device UUID announcement
+        self._send_uuid_message(upnp_device, template, to)
+        # Device type announcement
+        self._send_type_message(upnp_device, template, to)
+        
+    def _send_root_message(self, upnp_device, template, 
+                           to=(SSDP_ADDR, SSDP_PORT)):
+        self._message_env['NT'] = 'upnp:rootdevice'
+        self._message_env['USN'] = 'uuid:' + upnp_device.uuid \
+            + '::upnp:rootdevice'
+        self._send_template(template, self._message_env, to)
+
+    def _send_uuid_message(self, upnp_device, template, 
+                           to=(SSDP_ADDR, SSDP_PORT)):
+        self._message_env['NT'] = 'uuid:' + upnp_device.uuid
+        self._message_env['USN'] = 'uuid:' + upnp_device.uuid
+        self._send_template(template, self._message_env, to)
+
+    def _send_type_message(self, upnp_device, template, 
+                           to=(SSDP_ADDR, SSDP_PORT)):
+        self._message_env['NT'] = SSDP_SCHEMAS + ":device:" \
+            + upnp_device.type_ver
         self._message_env['USN'] = 'uuid:' + upnp_device.uuid \
             + "::" + self._message_env['NT']
-        self._send_template(template, self._message_env)
-        
-    def _send_template(self, templateName, data):
+        self._send_template(template, self._message_env, to)
+
+    def _send_template(self, templateName, data, to=(SSDP_ADDR, SSDP_PORT)):
         template = self._get_template(templateName)
         message = template % data
         headers = ""
         for line in message.splitlines():
             headers = headers + line + "\r\n"
         headers = headers + "\r\n"
-        self.fireEvent(Write((SSDP_ADDR, SSDP_PORT), headers))
+        self.fireEvent(Write(to, headers))
                     
     def _get_template(self, name):
         if self._template_cache.has_key(name):
@@ -166,6 +188,29 @@ class SSDPSender(BaseComponent):
         template = file.read()
         self._template_cache[name] = template
         return template
+
+
+class UPnPDeviceMatch(Event):
+
+    channel = "device_match"
+    
+    def __init__(self, component, inquirer, search_target):
+        super(UPnPDeviceMatch, self)\
+            .__init__(component, inquirer, search_target)
+
+
+class UPnPDeviceQuery(ComponentQuery):
+    
+    def __init__(self, query_function, inquirer, search_target):
+        super(UPnPDeviceQuery, self).__init__(query_function)
+        self._inquirer = inquirer
+        self._search_target = search_target
+
+    def decide(self, component):
+        res = super(UPnPDeviceQuery, self).decide(component)
+        if res != None:
+            component.fire(UPnPDeviceMatch(component, self._inquirer, \
+                                           self._search_target), target="ssdp")
 
 
 class SSDPReceiver(BaseComponent):
@@ -188,5 +233,6 @@ class SSDPReceiver(BaseComponent):
                 # TODO: add criteria
                 if search_target == "upnp:rootdevice":
                     f = lambda dev: dev.root_device
-                self.fire(UPnPDeviceQuery(f, address), target="upnp")                        
+                self.fire(UPnPDeviceQuery(f, address, search_target),
+                          target="upnp")                        
                 return
