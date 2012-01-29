@@ -19,6 +19,6 @@
 The UPnP device server
 ==========================
 
-.. autoclass:: cocy.upnp.server.UPnPDeviceServer
+.. autoclass:: cocy.upnp.UPnPDeviceServer
    :members:
    

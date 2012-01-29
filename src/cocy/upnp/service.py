@@ -40,9 +40,9 @@ class UPnPService(BaseController):
 
     def __init__(self, type, ver):
         """
-        Instances of this component are created from a
-        given type and version of a service.        
-        The actual service description is looked up in a directory
+        Instances of this component are created from a service
+        description that is selected by the given type and version.        
+        The service description is looked up in a directory
         where it is stored as a file named ``type_ver.xml``.
         
         :param type: the service type

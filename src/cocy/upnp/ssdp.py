@@ -29,7 +29,7 @@ import time
 from circuits.core.timers import Timer
 from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS
 import datetime
-from util.misc import ComponentQuery
+from util.compquery import ComponentQuery
 from circuits.core.events import Event
 
 class SSDPTranceiver(BaseComponent):
@@ -38,7 +38,7 @@ class SSDPTranceiver(BaseComponent):
 
     channel = "ssdp"
 
-    def __init__(self, web_server_port, **kwargs):
+    def __init__(self, **kwargs):
         '''
         Constructor
         '''
@@ -52,7 +52,7 @@ class SSDPTranceiver(BaseComponent):
         self._server.setTTL(2)
 
         # Our associated SSDP message sender
-        SSDPSender(web_server_port).register(self)
+        SSDPSender().register(self)
         
         # Our associated SSDP message receiver
         SSDPReceiver().register(self)
@@ -71,12 +71,11 @@ class SSDPSender(BaseComponent):
     _boot_id = int(time.time())
     _timers = dict()
 
-    def __init__(self, web_server_port, channel=channel):
+    def __init__(self, channel=channel):
         '''
         Constructor
         '''
         super(SSDPSender, self).__init__(channel=channel)
-        self.web_server_port = web_server_port
 
         # Setup the common entries in the dictionary that will be usd to
         # fill the UPnP templates.
@@ -100,7 +99,12 @@ class SSDPSender(BaseComponent):
 
     @handler("device_available", target="upnp")
     def _on_device_available(self, event, upnp_device):
+        self._update_message_env(upnp_device)
         self._send_device_messages(upnp_device, "available")
+        # Service announcements
+        for service in upnp_device.services:
+            self._send_service_message(upnp_device, service, "available")
+        # Handle repeats
         if getattr(event, 'times_sent', 0) < 3:
             self._timers[upnp_device.uuid] \
                 = Timer(0.25, event, event.channel[1]).register(self)
@@ -115,11 +119,16 @@ class SSDPSender(BaseComponent):
         if self._timers.has_key(upnp_device.uuid):
             self._timers[upnp_device.uuid].unregister()
             del self._timers[upnp_device.uuid]
+        self._update_message_env(upnp_device)
         self._send_device_messages(upnp_device, "unavailable")
+        # Service announcements
+        for service in upnp_device.services:
+            self._send_service_message(upnp_device, service, "unavailable")
    
     @handler("device_match")
     def _on_device_match(self, upnp_device, inquirer, search_target):
         if search_target == "ssdp:all":
+            self._update_message_env(upnp_device)
             self._send_device_messages(upnp_device, "result", inquirer)
         else:
             self._update_message_env(upnp_device)
@@ -136,12 +145,11 @@ class SSDPSender(BaseComponent):
         self._message_env['DATE'] \
             = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
         self._message_env['LOCATION'] = "http://" + self.hostaddr + ":" \
-            + str(self.web_server_port) + "/" + upnp_device.uuid \
+            + str(upnp_device.web_server_port) + "/" + upnp_device.uuid \
             + "/description.xml"
         
     def _send_device_messages(self, upnp_device, type, 
                               to=(SSDP_ADDR, SSDP_PORT)):
-        self._update_message_env(upnp_device)
         template = "notify-%s" % type
         # There is an extra announcement for root devices
         if upnp_device.root_device:
@@ -172,6 +180,15 @@ class SSDPSender(BaseComponent):
             + "::" + self._message_env['NT']
         self._send_template(template, self._message_env, to)
 
+    def _send_service_message(self, upnp_device, service, type, \
+                              to=(SSDP_ADDR, SSDP_PORT)):
+        template = "notify-%s" % type
+        self._message_env['NT'] = SSDP_SCHEMAS + ":service:" \
+            + service.type_ver
+        self._message_env['USN'] = 'uuid:' + upnp_device.uuid \
+            + "::" + self._message_env['NT']
+        self._send_template(template, self._message_env, to)
+        
     def _send_template(self, templateName, data, to=(SSDP_ADDR, SSDP_PORT)):
         template = self._get_template(templateName)
         message = template % data
@@ -189,6 +206,14 @@ class SSDPSender(BaseComponent):
         self._template_cache[name] = template
         return template
 
+
+class DeviceAvailable(Event):
+    channel = "device_available"
+    
+
+class DeviceUnavailable(Event):
+    channel = "device_unavailable"
+    
 
 class UPnPDeviceMatch(Event):
 

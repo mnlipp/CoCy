@@ -23,19 +23,19 @@ from xml.etree.ElementTree import Element, SubElement, ElementTree
 from circuitsx.tools import replace_targets
 from circuits.web.controllers import expose, BaseController
 from cocy.providers import BinarySwitch
-from circuits.core.handlers import handler
-from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS
-from util.misc import Queryable
+from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_SERVICE_ID_PREFIX
+from util.compquery import Queryable
+from util.misc import parseSoapRequest
 
 class UPnPDevice(BaseController, Queryable):
 
     channel = "upnp"
     
     class Properties(object):
-        def __init__(self, type, ver, spec_ver_major, spec_ver_minor,
+        def __init__(self, dev_type, ver, spec_ver_major, spec_ver_minor,
                      services):
             object.__init__(self)
-            self.type = type
+            self.type = dev_type
             self.ver = ver
             self.spec_ver_major = spec_ver_major
             self.spec_ver_minor = spec_ver_minor
@@ -44,15 +44,16 @@ class UPnPDevice(BaseController, Queryable):
     _mapping = {
         # Provider: Properties("Basic", 1, 1, 0, []),
         BinarySwitch: Properties("BinaryLight", 0.9, 1, 0,
-                                 [("SwitchPower:1", "SwitchPower:1")])
+            [("SwitchPower:1", UPNP_SERVICE_ID_PREFIX + "SwitchPower:1")])
     }
 
-    def __init__(self, provider, config_id, uuid_map, service_map):
+    def __init__(self, provider, config_id, uuid_map, service_map, port):
         self.valid = False
         self._provider = provider
+        self.web_server_port = port
         manifest = provider.provider_manifest()
-        for key, props in self._mapping.iteritems():
-            if isinstance(provider, key):
+        for itf, props in self._mapping.iteritems():
+            if isinstance(provider, itf):
                 self.valid = True
                 self._props = props
             break;
@@ -71,17 +72,19 @@ class UPnPDevice(BaseController, Queryable):
         self.model_name = manifest.full_name or manifest.display_name
         self.model_number = manifest.model_number
 
-        services = []
+        self._services = set()
+        service_insts = []
         for (service_type, service_id) in self._props.services:
             if not service_map.has_key(service_type):
                 continue
-            services.append((service_map[service_type], service_id))
+            service_insts.append((service_map[service_type], service_id))
+            self._services.add(service_map[service_type])
 
-        desc = self._desc_funcs[self.type_ver](self, config_id, services)
+        desc = self._desc_funcs[self.type_ver](self, config_id, service_insts)
         class Writer(object):
             result = ""
-            def write(self, str):
-                self.result += str
+            def write(self, value):
+                self.result += value
         writer = Writer()
         ElementTree(desc).write(writer, xml_declaration=True,
                                 method="xml", encoding="utf-8")
@@ -98,6 +101,10 @@ class UPnPDevice(BaseController, Queryable):
     @property
     def root_device(self):
         return True # TODO:
+
+    @property
+    def services(self):
+        return self._services
 
     def __getattr__(self, name):
         if not name.startswith("_") and hasattr(self._props, name):
@@ -157,6 +164,11 @@ class UPnPDevice(BaseController, Queryable):
         
     @expose("control", target="#me")
     def _on_control(self):
+        payload = parseSoapRequest(self.request)[2]
+        action = payload.tag
+        for node in payload:
+            print node
+
         self.response.headers["Content-Type"] = "text/xml"
         return "control"
 

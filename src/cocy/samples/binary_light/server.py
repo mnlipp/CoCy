@@ -26,7 +26,7 @@ import sys
 from circuits.web.events import Request
 from circuits.web.controllers import Controller
 from circuits.web.servers import BaseServer
-from cocy.upnp.server import UPnPDeviceManager
+from cocy.upnp import UPnPDeviceServer
 from cocy.samples.binary_light.misc import BinaryLight
 import os
 from util.application import Application
@@ -77,9 +77,9 @@ if __name__ == '__main__':
     #disp = ScopedDispatcher().register(web_server)
     #Root().register(disp)
     
-    UPnPDeviceManager(application.app_dir).register(application)
+    UPnPDeviceServer(application.app_dir).register(application)
     Debugger().register(application)
-    SOAP().register(application)
+    # SOAP().register(application)
     
     BinaryLight().register(application)
     

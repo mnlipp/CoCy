@@ -19,8 +19,9 @@
 .. codeauthor:: mnl
 """
 from circuits.core.components import BaseComponent
-from cocy.upnp.services import UPnPService
-from cocy.upnp.devices import UPnPDevice
+from cocy.upnp.service import UPnPService
+from cocy.upnp.device import UPnPDevice
+from cocy.upnp.ssdp import DeviceAvailable, DeviceUnavailable
 from circuits.core.handlers import handler
 from circuits.core.events import Event
 from circuits.web.servers import BaseServer
@@ -32,29 +33,23 @@ from cocy.providers import Provider
 import anydbm
 import os
 
-class DeviceAvailable(Event):
-    channel = "device_available"
-    
-class DeviceUnavailable(Event):
-    channel = "device_unavailable"
-    
-class UPnPDeviceManager(BaseComponent):
+class UPnPDeviceServer(BaseComponent):
     """
     This component keeps track of the :class:`cocy.providers.Provider` 
     instances and creates or removes the corresponding 
-    :class:`cocy.upnp.devices.UPnPDevice` components.
+    :class:`cocy.upnp.device.UPnPDevice` components.
     
     Notifications are sent when a new device is added 
-    (:class:`cocy.upnp.server.DeviceAvailable`) or removed
-    (:class:`cocy.upnp.server.DeviceUnavailable`)
+    (:class:`cocy.upnp.ssdp.DeviceAvailable`) or removed
+    (:class:`cocy.upnp.ssdp.DeviceUnavailable`)
     """
     channel = "upnp"
     
     def __init__(self, path, channel=channel):
-        super(UPnPDeviceManager, self).__init__(channel=channel)
+        super(UPnPDeviceServer, self).__init__(channel=channel)
         self._started = False
 
-        # Create and register all service components
+        # Create and register all known service component types
         self._service_types = {}
         service = UPnPService("SwitchPower", 1).register(self)
         self._service_types[service.type_ver] = service
@@ -73,7 +68,7 @@ class UPnPDeviceManager(BaseComponent):
         
         # SSDP server. Needs to know the port used by the web server
         # for announcements
-        SSDPTranceiver(self.web_server.port).register(self)
+        SSDPTranceiver().register(self)
         
         # Initially empty list of providers
         self._devices = []
@@ -91,7 +86,8 @@ class UPnPDeviceManager(BaseComponent):
         if not isinstance(component, Provider):
             return
         device = UPnPDevice(component, self.config_id, \
-                   self._uuid_db, self._service_types).register(self)
+                   self._uuid_db, self._service_types, \
+                   self.web_server.port).register(self)
         if not device.valid:
             return
         self._devices.append(device)

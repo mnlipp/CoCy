@@ -1,3 +1,4 @@
+"""
 ..
    This file is part of the CoCy program.
    Copyright (C) 2011 Michael N. Lipp
@@ -15,14 +16,31 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-==========================
-The cocy.upnp Framework
-==========================
+.. codeauthor:: mnl
+"""
+from circuits.core.events import Event
+from circuits.core.components import BaseComponent
+from circuits.core.handlers import handler
 
-.. toctree::
-   :maxdepth: 1
+class ComponentQuery(Event):
+    
+    channel = "component_query"
+    
+    def __init__(self, query_function, **kwargs):
+        super(ComponentQuery, self).__init__()
+        self._query_function = query_function
 
-   server
+    def decide(self, component):
+        try:
+            if self._query_function(component):
+                return component
+            else:
+                return None
+        except:
+            return None
 
-.. autoclass:: cocy.upnp.device_server.UPnPDeviceServer
-   :members:
+class Queryable(BaseComponent):
+    
+    @handler("component_query")
+    def _on_component_query(self, event):
+        return event.decide(self)

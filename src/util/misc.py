@@ -18,29 +18,28 @@
 
 .. codeauthor:: mnl
 """
-from circuits.core.events import Event
-from circuits.core.components import BaseComponent
-from circuits.core.handlers import handler
+from soaplib.soap import from_soap
 
-class ComponentQuery(Event):
-    
-    channel = "component_query"
-    
-    def __init__(self, query_function, **kwargs):
-        super(ComponentQuery, self).__init__()
-        self._query_function = query_function
+def parseSoapRequest(request):
+    # Test if this is a SOAP request. SOAP 1.1 specifies special
+    # header, SOAP 1.2 special Content-Type
+    soapAction = request.headers["SOAPAction"];
+    import cgi
+    contentType = cgi.parse_header(request.headers["Content-Type"]);
+    if (not soapAction and contentType[0] != "application/soap+xml"):
+        return
+    # Get body data of request
+    body = request.body.read()
+    # Use soaplib to separate header and payload
+    charset = contentType[1].get('charset',None)
+    if charset is None:
+        charset = 'utf-8'
+            
+    payload, soapheader = from_soap(body, charset)
+    from soaplib.soap import collapse_swa
+    payload = collapse_swa(contentType, payload)
 
-    def decide(self, component):
-        try:
-            if self._query_function(component):
-                return component
-            else:
-                return None
-        except:
-            return None
+    if payload is not None:
+        soapAction = payload.tag
 
-class Queryable(BaseComponent):
-    
-    @handler("component_query")
-    def _on_component_query(self, event):
-        return event.decide(self)
+    return soapAction, soapheader, payload
