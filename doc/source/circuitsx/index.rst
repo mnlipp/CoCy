@@ -1,4 +1,3 @@
-"""
 ..
    This file is part of the CoCy program.
    Copyright (C) 2011 Michael N. Lipp
@@ -16,7 +15,15 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-.. codeauthor:: mnl
-"""
+==========================
+Circuits extension classes
+==========================
 
-from .misc import fix_circuits
+.. toctree::
+   :maxdepth: 1
+
+   web/index
+
+This package provides some classes that can be considered useful additions
+to the circuits library. 
+

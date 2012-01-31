@@ -31,6 +31,7 @@ Contents:
    providers
    upnp/index
    util/index
+   circuitsx/index
 
 Indices and tables
 ==================
