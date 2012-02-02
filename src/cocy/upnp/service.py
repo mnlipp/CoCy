@@ -21,6 +21,7 @@
 from circuitsx.tools import replace_targets
 from circuits.web.controllers import BaseController, expose
 import os
+from circuitsx.web.dispatchers.dispatcher import ScopedChannel
 
 
 class UPnPService(BaseController):
@@ -36,6 +37,7 @@ class UPnPService(BaseController):
     information provided for the device.
     """
 
+    channel = None
     _template_dir = os.path.join(os.path.dirname(__file__), "templates")
 
     def __init__(self, type, ver):
@@ -51,7 +53,9 @@ class UPnPService(BaseController):
         self._type = type
         self._ver = ver
         self._path = "/%s_%s" % (self._type, self._ver)
-        replace_targets(self, {"#me": "/upnp-web" + self._path})
+        self.channel = ScopedChannel("upnp-web", self._path)
+        # Now call super as only now the channel is known and this classes
+        # handlers will be registered properly
         super(UPnPService, self).__init__();
         file = open(os.path.join(self._template_dir, 
                                  "%s_%s.xml" % (self._type, self._ver)))
@@ -65,7 +69,7 @@ class UPnPService(BaseController):
     def description_url(self):
         return self._path + "/service.xml" 
 
-    @expose("service.xml", target="#me")
+    @expose("service.xml")
     def _on_description(self):
         self.response.headers["Content-Type"] = "text/xml"
         return self._description

@@ -21,17 +21,26 @@
 from uuid import uuid4
 from xml.etree.ElementTree import Element, SubElement, ElementTree
 from circuitsx.tools import replace_targets
-from circuits.web.controllers import expose, BaseController
+from circuits.web.controllers import expose, BaseController, Controller
 from cocy.providers import BinarySwitch
 from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_SERVICE_ID_PREFIX
 from util.compquery import Queryable
 from util.misc import parseSoapRequest
+from circuitsx.web.dispatchers.dispatcher import ScopedChannel
 
-class UPnPDevice(BaseController, Queryable):
+class UPnPDeviceAdapter(BaseController, Queryable):
+    """
+    This class publishes a :class:`cocy.Provider` as a UPnP device.
+    """
 
     channel = "upnp"
     
     class Properties(object):
+        """
+        This class simply serves as a container for common information about 
+        UPnP device types.
+        """
+        
         def __init__(self, dev_type, ver, spec_ver_major, spec_ver_minor,
                      services):
             object.__init__(self)
@@ -41,37 +50,52 @@ class UPnPDevice(BaseController, Queryable):
             self.spec_ver_minor = spec_ver_minor
             self.services = services
 
+
     _mapping = {
         # Provider: Properties("Basic", 1, 1, 0, []),
         BinarySwitch: Properties("BinaryLight", 0.9, 1, 0,
             [("SwitchPower:1", UPNP_SERVICE_ID_PREFIX + "SwitchPower:1")])
     }
+    """
+    This dictionary maps the defined :class:`cocy.providers.Provider`
+    classes to UPnP device properties.
+    """
 
     def __init__(self, provider, config_id, uuid_map, service_map, port):
+        super(UPnPDeviceAdapter, self).__init__();
+        # It may turn out that no adapter can be constructed
         self.valid = False
-        self._provider = provider
-        self.web_server_port = port
-        manifest = provider.provider_manifest()
+        # Try to find a match UPnP info for the device 
         for itf, props in self._mapping.iteritems():
             if isinstance(provider, itf):
                 self.valid = True
                 self._props = props
             break;
+        if not self.valid:
+            return
+        # Remember the provider as our "model"
+        self._provider = provider
+        # The web server port is included in device descriptions
+        self.web_server_port = port
+        # Get instance information about the provider
+        manifest = provider.provider_manifest()
         if manifest.unique_id and uuid_map.has_key(manifest.unique_id):
             self._uuid = uuid_map[manifest.unique_id]
         else:
             self._uuid = str(uuid4())
             uuid_map[manifest.unique_id] = self._uuid
+        # Generate a unique path that will be used to access this device
         self._path = "/" + self.uuid
-        replace_targets(self, {"#me": "/upnp-web" + self._path})
-        super(UPnPDevice, self).__init__();
+        # Remember the configuration id
         self.config_id = config_id
+        # Copy and supplement the instance information
         self.friendly_name = manifest.display_name
         self.manufacturer = manifest.manufacturer or "cocy"
         self.model_description = manifest.description
         self.model_name = manifest.full_name or manifest.display_name
         self.model_number = manifest.model_number
 
+        # Assemble the services provided for the provider
         self._services = set()
         service_insts = []
         for (service_type, service_id) in self._props.services:
@@ -80,6 +104,7 @@ class UPnPDevice(BaseController, Queryable):
             service_insts.append((service_map[service_type], service_id))
             self._services.add(service_map[service_type])
 
+        # Generate a device description for the device
         desc = self._desc_funcs[self.type_ver](self, config_id, service_insts)
         class Writer(object):
             result = ""
@@ -89,6 +114,11 @@ class UPnPDevice(BaseController, Queryable):
         ElementTree(desc).write(writer, xml_declaration=True,
                                 method="xml", encoding="utf-8")
         self.description = writer.result
+
+        # Create an adapter that makes links this class with the web
+        # component interface of circuits (uses different channel)
+        UPnPDeviceController(ScopedChannel("upnp-web", self._path)) \
+            .register(self)
 
     @property
     def provider(self):
@@ -161,9 +191,14 @@ class UPnPDevice(BaseController, Queryable):
             = self._path + "/control"
         SubElement(service, "{%s}eventSubURL" % SSDP_DEVICE_SCHEMA).text \
             = self._path + "/sub"
-        
-    @expose("control", target="#me")
-    def _on_control(self):
+
+
+class UPnPDeviceController(Controller):
+
+    def __init__(self, channel):
+        super(UPnPDeviceController, self).__init__(channel=channel);
+
+    def control(self):
         payload = parseSoapRequest(self.request)[2]
         action = payload.tag
         for node in payload:
@@ -172,13 +207,12 @@ class UPnPDevice(BaseController, Queryable):
         self.response.headers["Content-Type"] = "text/xml"
         return "control"
 
-    @expose("sub", target="#me")
-    def _on_sub(self):
+    def sub(self):
         self.response.headers["Content-Type"] = "text/xml"
         return "sub"
     
-    @expose("description.xml", target="#me")
-    def _on_description(self):
+    @expose("description.xml")
+    def description(self):
         self.response.headers["Content-Type"] = "text/xml"
-        return self.description
+        return self.manager.description
 

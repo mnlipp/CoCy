@@ -92,3 +92,8 @@ class Application(BaseComponent):
     @property
     def app_dir(self):
         return self._config_dir
+
+    @property
+    def config(self):
+        return self._config
+    

@@ -15,19 +15,22 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+.. codeauthor:: mnl
 """
-SSDP_PORT = 1900
-SSDP_ADDR = '239.255.255.250'
+from circuits.core.events import Event
 
-SSDP_SCHEMAS = "urn:schemas-upnp-org"
-SSDP_DEVICE_SCHEMA = "urn:schemas-upnp-org:device-1-0"
-UPNP_SERVICE_ID_PREFIX = "urn:upnp-org:serviceId:"
+class MgmtControllerQuery(Event):
+    """
+    This event is issued when a web based management user interface
+    for an application is build. Every component that wants to contribute
+    to such an interface listens for this event and returns a new
+    object of type :class:`circuits.web.controllers.BaseController`.
+    
+    The controller returned should produce output that is based on
+    the style-sheet that is passed as the first parameter of this
+    event.  
+    """
 
-from .device_server import UPnPDeviceServer
-from .device import UPnPDeviceAdapter
-from .ssdp import SSDPTranceiver
-
-__all__ = ("SSDP_PORT", "SSDP_ADDR", "SSDP_SCHEMAS",
-           "SSDP_DEVICE_SCHEMA", "UPNP_SERVICE_ID_PREFIX", 
-           "UPnPDeviceServer", "SSDPTranceiver"
-)
+    target = "*"
+    channel = "mgmt_controller_query"

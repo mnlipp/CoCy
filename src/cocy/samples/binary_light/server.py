@@ -18,27 +18,19 @@
 
 .. codeauthor:: mnl
 """
-from circuits.core.manager import Manager
 from circuits.core.debugger import Debugger
-from circuitsx.web.dispatchers.soap import SOAP
 from circuits.core.components import Component
 import sys
-from circuits.web.events import Request
 from circuits.web.controllers import Controller
 from circuits.web.servers import BaseServer
 from cocy.upnp import UPnPDeviceServer
 from cocy.samples.binary_light.misc import BinaryLight
 import os
 from util.application import Application
-
-class ErrorHandler(Component):
-    def exception(self, error_type, value, traceback, handler=None):
-        sys.exit();
-
-class Root(Controller):
-
-    def index(self):
-        return "Hello World!"
+from circuitsx.web.dispatchers.dispatcher import ScopeDispatcher, ScopedChannel
+from circuitsx import fix_circuits
+from util.mgmtui import MgmtControllerQuery
+from circuits.core.handlers import handler
 
 CONFIG = {
     "logging": {
@@ -51,33 +43,53 @@ CONFIG = {
     "upnp": {
         "max-age": "1800",
     },
+    "ui": {
+        "port": "8877",
+    },
 }
 
+class ErrorHandler(Component):
+    def exception(self, error_type, value, traceback, handler=None):
+        sys.exit();
+
+class UI(BaseServer):
+
+    class Root(Controller):
+
+        channel = ScopedChannel("ui", "/")
+
+        def index(self):
+            return "Hello World!"
+
+    def __init__(self, port):
+        super(UI, self).__init__(("", port), channel="ui")
+        # Dispatcher for "/ui".
+        ScopeDispatcher(channel="ui").register(self)
+        # Root page
+        UI.Root().register(self);
+        self.fireEvent(MgmtControllerQuery())
+        
+    @handler("mgmt_controller_query", priority=-999)
+    def _on_controllers(self, event):
+        result = event.value.value 
+        if result == None:
+            return
+        if not isinstance(result, list):
+            result = [result]
+        pass
 
 if __name__ == '__main__':
 
-    # Fix circuits problems
-    _orig_fireEvent = Manager.fireEvent
-    def _fix_fired_request (self, event, channel=None, target=None):
-        if isinstance(event, Request) \
-            and not getattr(event, "_has_been_fixed", False):
-            event.success = "request_success", self.channel
-            event.failure = "request_failure", self.channel
-            event.filter = "request_filtered", self.channel
-            event.start = "request_started", self.channel
-            event.end = "request_completed", self.channel
-            event._has_been_fixed = True
-        return _orig_fireEvent (self, event, channel, target)
-    Manager.fireEvent = _fix_fired_request
-    Manager.fire = Manager.fireEvent
+    fix_circuits()
  
     application = Application("CoCy", CONFIG)
     ErrorHandler().register(application)
-    web_server = BaseServer(("", 8000)).register(application)
-    #disp = ScopedDispatcher().register(web_server)
-    #Root().register(disp)
+    # Build a web (HTTP) server for handling user interface requests.
+    port = int(application.config.get("ui", "port", 0))
+    UI(port).register(application)
     
-    UPnPDeviceServer(application.app_dir).register(application)
+    upnp_dev_server \
+        = UPnPDeviceServer(application.app_dir).register(application)
     Debugger().register(application)
     # SOAP().register(application)
     

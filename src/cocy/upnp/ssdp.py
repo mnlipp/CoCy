@@ -31,6 +31,7 @@ from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS
 import datetime
 from util.compquery import ComponentQuery
 from circuits.core.events import Event
+from circuits.web.controllers import Controller
 
 class SSDPTranceiver(BaseComponent):
     '''The SSDP protocol server component
@@ -96,6 +97,10 @@ class SSDPSender(BaseComponent):
             return
         if option == "max-age":
             self._message_expiry = int(value)
+
+    @handler("mgmt_controller_query")
+    def _on_controller_query(self):
+        return Controller()
 
     @handler("device_available", target="upnp")
     def _on_device_available(self, event, upnp_device):
@@ -237,6 +242,17 @@ class UPnPDeviceQuery(ComponentQuery):
             component.fire(UPnPDeviceMatch(component, self._inquirer, \
                                            self._search_target), target="ssdp")
 
+class UPnPDeviceNotification(Event):
+    
+    channel = "device_notification"
+    
+    def __init__(self, location, notification_type, max_age, server, usn):
+        super(UPnPDeviceNotification, self).__init__()
+        self.location = location
+        self.type = notification_type
+        self.max_age = max_age
+        self.server = server
+        self.usn = usn
 
 class SSDPReceiver(BaseComponent):
 
@@ -261,3 +277,24 @@ class SSDPReceiver(BaseComponent):
                 self.fire(UPnPDeviceQuery(f, address, search_target),
                           target="upnp")                        
                 return
+        elif lines[0].startswith("NOTIFY "):
+            location = None
+            max_age = None
+            notification_type = None
+            server = None
+            usn = None
+            for line in lines[1:]:
+                if line.startswith("CACHE-CONTROL:"):
+                    s = line.split(":", 1)[1].strip()
+                    max_age = s.split("=", 1)[1].strip()
+                elif line.startswith("LOCATION:"):
+                    location = line.split(":", 1)[1].strip()
+                elif line.startswith("NT:"):
+                    notification_type = line.split(":", 1)[1].strip()
+                elif line.startswith("SERVER:"):
+                    server = line.split(":", 1)[1].strip()
+                elif line.startswith("USN:"):
+                    usn = line.split(":", 1)[1].strip()
+            self.fire(UPnPDeviceNotification(location, notification_type, 
+                                             max_age, server, usn),
+                      target="upnp")

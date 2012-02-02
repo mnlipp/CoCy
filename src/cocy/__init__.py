@@ -18,3 +18,7 @@
 
 .. codeauthor:: mnl
 """
+
+from providers import Provider, BinarySwitch
+
+__all__ = (BinarySwitch)

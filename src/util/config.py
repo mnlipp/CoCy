@@ -117,12 +117,15 @@ class Configuration(BaseComponent):
         self._config.optionxform = str
         if os.path.exists(filename):
             self._config.read(filename)
-        else:
-            for section in initial_config:
-                if not self._config.has_section(section):
-                    self._config.add_section(section)
-                    for option, value in initial_config[section].items():
+        modified = False
+        for section in initial_config:
+            if not self._config.has_section(section):
+                self._config.add_section(section)
+                for option, value in initial_config[section].items():
+                    if not self._config.has_option(section, option):
                         self._config.set(section, option, str(value))
+                        modified = True
+        if modified:
             with open(filename, "w") as f:
                 self._config.write(f)
 

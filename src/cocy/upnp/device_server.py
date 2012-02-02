@@ -20,14 +20,12 @@
 """
 from circuits.core.components import BaseComponent
 from cocy.upnp.service import UPnPService
-from cocy.upnp.device import UPnPDevice
+from cocy.upnp.device import UPnPDeviceAdapter
 from cocy.upnp.ssdp import DeviceAvailable, DeviceUnavailable
 from circuits.core.handlers import handler
-from circuits.core.events import Event
 from circuits.web.servers import BaseServer
-from circuitsx.web.dispatchers.dispatcher import ScopeDispatcher
-from circuitsx.web.dispatchers.serverscopes import ServerScopes
-from circuits.web.controllers import BaseController, expose
+from circuitsx.web.dispatchers.dispatcher import ScopeDispatcher, ScopedChannel
+from circuits.web.controllers import BaseController, expose, Controller
 from cocy.upnp.ssdp import SSDPTranceiver
 from cocy.providers import Provider
 import anydbm
@@ -37,7 +35,7 @@ class UPnPDeviceServer(BaseComponent):
     """
     This component keeps track of the :class:`cocy.providers.Provider` 
     instances and creates or removes the corresponding 
-    :class:`cocy.upnp.device.UPnPDevice` components.
+    :class:`cocy.upnp.device.UPnPDeviceAdapter` components.
     
     Notifications are sent when a new device is added 
     (:class:`cocy.upnp.ssdp.DeviceAvailable`) or removed
@@ -58,8 +56,6 @@ class UPnPDeviceServer(BaseComponent):
         # the server that will be announced by SSDP, so it has
         # no fixed port number.
         self.web_server = BaseServer(("", 0), channel="upnp-web").register(self)
-        # All requests to the server will be prefixed with "/upnp-web/".
-        ServerScopes(channel="upnp-web").register(self.web_server)
         # Dispatcher for "/upnp-web".
         disp = ScopeDispatcher(channel="upnp-web").register(self.web_server)
         # Dummy root controller prevents requests for nested resources
@@ -85,7 +81,7 @@ class UPnPDeviceServer(BaseComponent):
     def _on_registered(self, component, manager):
         if not isinstance(component, Provider):
             return
-        device = UPnPDevice(component, self.config_id, \
+        device = UPnPDeviceAdapter(component, self.config_id, \
                    self._uuid_db, self._service_types, \
                    self.web_server.port).register(self)
         if not device.valid:
@@ -117,10 +113,10 @@ class UPnPDeviceServer(BaseComponent):
         self.fireEvent(event)
         return True
 
-class DummyRoot(BaseController):
-    channel = "/upnp-web"
+class DummyRoot(Controller):
     
-    @expose("index", target = "/upnp-web")
+    channel = ScopedChannel("upnp-web", "/")
+    
     def index(self):
         return ""
     
