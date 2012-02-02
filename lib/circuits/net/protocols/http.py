@@ -7,9 +7,6 @@ from circuits.core import handler, BaseComponent, Event
 class Request(Event):
     """Request Event"""
 
-    success = "request_success",
-    failure = "request_failure",
-
 class Response(Event):
     """Response Event"""
 
@@ -42,14 +39,14 @@ class HTTP(BaseComponent):
         self._response = None
         self._buffer = BytesIO()
 
-    @handler("read", target="client")
+    @handler("read", channel="client")
     def _on_client_read(self, data):
         if self._response is not None:
             self._response._body.write(data)
             cLen = int(self._response.headers.get("Content-Length", "0"))
             if cLen and self._response._body.tell() == cLen:
                 self._response._body.seek(0)
-                self.push(Response(self._response))
+                self.fire(Response(self._response))
                 self._response = None
         else:
             statusline, data = data.split(b"\r\n", 1)
@@ -75,4 +72,4 @@ class HTTP(BaseComponent):
                 return
 
             response._body.seek(0)
-            self.push(Response(response))
+            self.fire(Response(response))

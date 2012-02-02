@@ -11,12 +11,17 @@ import json
 from inspect import getargspec
 from collections import Callable
 from functools import update_wrapper
+from sys import exc_info as _exc_info
+from traceback import format_tb
 
 from circuits.core import handler, BaseComponent
+from circuits import Event
 
 from . import tools
+from .events import GenerateResponse, RequestSuccess, RequestFailure
 from .wrappers import Response
 from .errors import Forbidden, HTTPError, NotFound, Redirect
+from .exceptions import HTTPException
 
 
 def expose(*channels, **config):
@@ -32,9 +37,21 @@ def expose(*channels, **config):
                     if hasattr(self.request, "session"):
                         self.session = self.request.session
                 if not getattr(f, "event", False):
-                    return f(self, *args, **kwargs)
+                    result = f(self, *args, **kwargs)
                 else:
-                    return f(self, event, *args, **kwargs)
+                    result = f(self, event, *args, **kwargs)
+                self.fire(RequestSuccess(event), "web")
+                return result
+            except HTTPException as e:
+                etype, evalue, etraceback = _exc_info()
+                traceback = format_tb(etraceback)
+                error = (etype, evalue, traceback)
+                self.fire(RequestFailure(event), "web")
+                return error
+            except Exception as e:
+                print '============> %r' % type(e)
+                self.fire(RequestFailure(event), "web")
+                raise
             finally:
                 if hasattr(self, "request"):
                     del self.request
@@ -124,16 +141,13 @@ class BaseController(BaseComponent):
         tools.expires(self.request, self.response, secs, force)
 
 
-class Controller(BaseController):
-    pass
-
 Controller = ExposeMetaClass("Controller", (BaseController,), {})
 
 
 def exposeJSON(*channels, **config):
     def decorate(f):
         @handler(*channels, **config)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self, event, *args, **kwargs):
             try:
                 if not hasattr(self, "request"):
                     self.request, self.response = args[:2]
@@ -141,7 +155,11 @@ def exposeJSON(*channels, **config):
                     self.cookie = self.request.cookie
                     if hasattr(self.request, "session"):
                         self.session = self.request.session
-                result = f(self, *args, **kwargs)
+                if not getattr(f, "event", False):
+                    result = f(self, *args, **kwargs)
+                else:
+                    result = f(self, event, *args, **kwargs)
+                self.fire(RequestSuccess(event), "web")
                 if (isinstance(result, HTTPError)
                         or isinstance(result, Response)):
                     return result
@@ -150,6 +168,9 @@ def exposeJSON(*channels, **config):
                             "application/json"
                     )
                     return json.dumps(result)
+            except Exception as e:
+                self.fire(RequestFailure(event), "web")
+                raise
             finally:
                 if hasattr(self, "request"):
                     del self.request
@@ -178,8 +199,5 @@ class ExposeJSONMetaClass(type):
                     and not (k[0] == "_" or hasattr(v, "handler")):
                 setattr(cls, k, exposeJSON(k)(v))
 
-
-class JSONController(BaseController):
-    pass
 
 JSONController = ExposeJSONMetaClass("JSONController", (BaseController,), {})
