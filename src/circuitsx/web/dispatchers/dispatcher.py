@@ -21,7 +21,6 @@
 from circuits.web.dispatchers.dispatcher import Dispatcher
 from circuits.core.handlers import handler
 from circuitsx.tools import component_handlers
-from circuits.web.utils import parseQueryString
 from circuits.web.controllers import BaseController
 
 class ScopedChannel(object):
@@ -78,14 +77,10 @@ class ScopeDispatcher(Dispatcher):
     a class doesn't necessarily have to inherit from
     :class:`circuits.web.controllers.BaseController`.
     It may also expose request handling methods using the
-    ``@expose`` annotation with keyword parameter `target` set
+    ``@expose`` annotation with keyword parameter `channel` set
     to a scoped channel. Of course, you cannot use the prepared
     response methods that you usually inherit from ``BaseController``
     if you use that mechanism.     
-    
-    Also note that this dispatcher will not modify the component hierarchy
-    as :class:`circuits.web.Dispatcher` does. Any registered controller's
-    parent will remain unchanged.
     
     The scope dispatcher does not override the behavior of a standard
     dispatcher, it complements it. If a standard dispatcher component
@@ -103,43 +98,25 @@ class ScopeDispatcher(Dispatcher):
         """
         super(ScopeDispatcher, self).__init__(**kwargs)
 
-    @handler("registered", target="*", override=True)
+    @handler("registered", channel="*", override=True)
     def _on_registered(self, c, m):
         if not isinstance(c, BaseController):
             return
         for h in component_handlers(c):
-            scoped_channel = h.target or c.channel
+            scoped_channel = h.channel or c.channel
             if scoped_channel and isinstance(scoped_channel, ScopedChannel) \
                 and scoped_channel.scope == self.channel:
-                self.paths.add(scoped_channel.path)
-                self.addHandler(h, h.channels, target=scoped_channel.path)
+                self.paths[scoped_channel.path] = c
 
-    @handler("unregistered", target="*", override=True)
+    @handler("unregistered", channel="*", override=True)
     def _on_unregistered(self, c, m):
         if not isinstance(c, BaseController):
             return
         for h in component_handlers(c):
-            scoped_channel = h.target or c.channel
+            scoped_channel = h.channel or c.channel
             if scoped_channel and isinstance(scoped_channel, ScopedChannel) \
                 and scoped_channel.scope == self.channel:
-                self.paths.remove(scoped_channel.path)
-                self.removeHandler(h)
+                del self.paths[scoped_channel.path]
 
-    @handler("request", filter=True, priority=0.1, override=True)
-    def _on_request(self, event, request, response, peer_cert=None):
-        req = event
-        if peer_cert:
-            req.peer_cert = peer_cert
-
-        channel, target, vpath = self._getChannel(request)
-
-        if channel and target:
-            req.kwargs = parseQueryString(request.qs)
-            v = self._parseBody(request, response, req.kwargs)
-            if not v:
-                return v  # MaxSizeExceeded (return the HTTPError)
-
-            if vpath:
-                req.args += tuple(vpath)
-
-            return self.push(req, channel, ScopedChannel(self.channel, target))
+#    @handler("request", filter=True, priority=0.1, override=True)
+#    def _on_request(self, event, request, response, peer_cert=None):

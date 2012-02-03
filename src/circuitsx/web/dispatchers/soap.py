@@ -22,11 +22,11 @@ class SOAP(BaseComponent):
 
     channel = "web"
 
-    def __init__(self, path=None, target="*", encoding="utf-8"):
+    def __init__(self, path=None, channel="*", encoding="utf-8"):
         super(SOAP, self).__init__()
 
         self.path = path
-        self.target = target
+        self.channel = channel
         self.encoding = encoding
 
     @handler("request", filter=True, priority=0.1)

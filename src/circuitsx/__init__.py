@@ -18,5 +18,3 @@
 
 .. codeauthor:: mnl
 """
-
-from .misc import fix_circuits
