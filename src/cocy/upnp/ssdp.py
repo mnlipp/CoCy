@@ -213,16 +213,15 @@ class SSDPSender(BaseComponent):
 
 
 class DeviceAvailable(Event):
-    channel = "device_available"
+    name = "device_available"
     
 
 class DeviceUnavailable(Event):
-    channel = "device_unavailable"
+    name = "device_unavailable"
     
 
 class UPnPDeviceMatch(Event):
-
-    channel = "device_match"
+    name = "device_match"
     
     def __init__(self, component, inquirer, search_target):
         super(UPnPDeviceMatch, self)\
@@ -233,6 +232,7 @@ class UPnPDeviceQuery(ComponentQuery):
     
     def __init__(self, query_function, inquirer, search_target):
         super(UPnPDeviceQuery, self).__init__(query_function)
+        self.name = super(UPnPDeviceQuery, self).name
         self._inquirer = inquirer
         self._search_target = search_target
 

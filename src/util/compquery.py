@@ -24,7 +24,7 @@ from circuits.core.handlers import handler
 
 class ComponentQuery(Event):
     
-    channel = "component_query"
+    channels = ("component_query")
     
     def __init__(self, query_function, **kwargs):
         super(ComponentQuery, self).__init__()

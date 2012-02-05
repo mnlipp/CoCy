@@ -120,30 +120,13 @@ class ScopeDispatcher(Dispatcher):
                 and scoped_channel.scope == self.channel:
                 del self.paths[scoped_channel.path]
 
-    @handler("request", filter=True, priority=0.1, override=True)
-    def _on_request(self, event, request, response, peer_cert=None):
-        req = event
-        if peer_cert:
-            req.peer_cert = peer_cert
+    def _get_request_handler(self, request):
+        name, channel, vpath \
+            = super(ScopeDispatcher, self)._get_request_handler(request)
+        if isinstance(channel, str) or isinstance(channel, unicode):
+            channel = ScopedChannel(self.channel, channel)
+        return name, channel, vpath
 
-        name, channel, vpath = self._get_request_handler(request)
-
-        if name is not None and channel is not None:
-            req.kwargs = parseQueryString(request.qs)
-            v = self._parseBody(request, response, req.kwargs)
-            if not v:
-                # MaxSizeExceeded (return the HTTPError)
-                return v
-
-            if vpath:
-                req.args += tuple(vpath)
-
-            if isinstance(name, unicode):
-                name = str(name)
-
-            return self.fire(Request.create(name.title(),
-                *req.args, **req.kwargs),
-                ScopedChannel (self.channel, channel))
 
     @handler("request_success", channel="*", filter=True)
     def _on_request_success(self, event, e):
