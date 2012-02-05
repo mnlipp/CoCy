@@ -91,7 +91,7 @@ class SSDPSender(BaseComponent):
             except:
                 pass
 
-    @handler("config_value", target="configuration")
+    @handler("config_value", channel="configuration")
     def _on_config_value(self, section, option, value):
         if not section == "upnp":
             return
@@ -102,7 +102,7 @@ class SSDPSender(BaseComponent):
     def _on_controller_query(self):
         return Controller()
 
-    @handler("device_available", target="upnp")
+    @handler("device_available", channel="upnp")
     def _on_device_available(self, event, upnp_device):
         self._update_message_env(upnp_device)
         self._send_device_messages(upnp_device, "available")
@@ -119,7 +119,7 @@ class SSDPSender(BaseComponent):
                 = Timer(self._message_expiry / 4,
                         event, event.channel[1]).register(self)
    
-    @handler("device_unavailable", target="upnp")
+    @handler("device_unavailable", channel="upnp")
     def _on_device_unavailable(self, event, upnp_device):
         if self._timers.has_key(upnp_device.uuid):
             self._timers[upnp_device.uuid].unregister()
@@ -240,7 +240,7 @@ class UPnPDeviceQuery(ComponentQuery):
         res = super(UPnPDeviceQuery, self).decide(component)
         if res != None:
             component.fire(UPnPDeviceMatch(component, self._inquirer, \
-                                           self._search_target), target="ssdp")
+                                           self._search_target), "ssdp")
 
 class UPnPDeviceNotification(Event):
     
@@ -274,8 +274,7 @@ class SSDPReceiver(BaseComponent):
                 # TODO: add criteria
                 if search_target == "upnp:rootdevice":
                     f = lambda dev: dev.root_device
-                self.fire(UPnPDeviceQuery(f, address, search_target),
-                          target="upnp")                        
+                self.fire(UPnPDeviceQuery(f, address, search_target), "upnp")                        
                 return
         elif lines[0].startswith("NOTIFY "):
             location = None
@@ -296,5 +295,4 @@ class SSDPReceiver(BaseComponent):
                 elif line.startswith("USN:"):
                     usn = line.split(":", 1)[1].strip()
             self.fire(UPnPDeviceNotification(location, notification_type, 
-                                             max_age, server, usn),
-                      target="upnp")
+                                             max_age, server, usn), "upnp")

@@ -22,6 +22,8 @@ from circuits.core.handlers import handler
 from circuits.core.components import BaseComponent
 from circuits.core.events import Event
 import os
+import sys
+
 try:
     import ConfigParser
 except ImportError:
@@ -55,7 +57,6 @@ class EmitConfig(Event):
     """
     
     channel = "emit_config"
-    target = "configuration"
 
 
 class Configuration(BaseComponent):
@@ -140,12 +141,12 @@ class Configuration(BaseComponent):
     def _on_emit_config(self):
         self.emit_values()
 
-    @handler("started", target="*", filter=True, priority=999)
-    def _on_started(self, event, component, mode):
+    @handler("started", channel="*", filter=True, priority=sys.maxint)
+    def _on_started(self, event, component):
         if not self._emit_done:
             self.emit_values()
-            self.fire(event)
-            return True
+            self.fire(event, *event.channels)
+            return event.value
 
     @handler("config_value")
     def _on_config_value(self, section, option, value):

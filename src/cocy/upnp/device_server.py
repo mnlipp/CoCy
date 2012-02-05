@@ -96,13 +96,13 @@ class UPnPDeviceServer(BaseComponent):
             return
         
 
-    @handler("started", target="application")
-    def _on_started (self, component, mode):
+    @handler("started", channel="application")
+    def _on_started (self, component):
         self._started = True
         for device in self._devices:
             self.fireEvent(DeviceAvailable(device))
 
-    @handler("stopped", target="*", priority=100, filter=True)
+    @handler("stopped", channel="*", priority=100, filter=True)
     def _on_stopped(self, event, component):
         if not self._started:
             return

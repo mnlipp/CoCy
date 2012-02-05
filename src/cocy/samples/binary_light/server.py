@@ -18,6 +18,9 @@
 
 .. codeauthor:: mnl
 """
+from util.python26fix import install_python26_fix
+install_python26_fix()
+
 from circuits.core.debugger import Debugger
 from circuits.core.components import Component
 import sys
@@ -28,7 +31,6 @@ from cocy.samples.binary_light.misc import BinaryLight
 import os
 from util.application import Application
 from circuitsx.web.dispatchers.dispatcher import ScopeDispatcher, ScopedChannel
-from circuitsx import fix_circuits
 from util.mgmtui import MgmtControllerQuery
 from circuits.core.handlers import handler
 
@@ -80,9 +82,8 @@ class UI(BaseServer):
 
 if __name__ == '__main__':
 
-    fix_circuits()
- 
     application = Application("CoCy", CONFIG)
+    Debugger().register(application)
     ErrorHandler().register(application)
     # Build a web (HTTP) server for handling user interface requests.
     port = int(application.config.get("ui", "port", 0))
@@ -90,7 +91,6 @@ if __name__ == '__main__':
     
     upnp_dev_server \
         = UPnPDeviceServer(application.app_dir).register(application)
-    Debugger().register(application)
     # SOAP().register(application)
     
     BinaryLight().register(application)

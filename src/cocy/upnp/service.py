@@ -18,7 +18,6 @@
 
 .. codeauthor:: mnl
 """
-from circuitsx.tools import replace_targets
 from circuits.web.controllers import BaseController, expose
 import os
 from circuitsx.web.dispatchers.dispatcher import ScopedChannel
@@ -70,6 +69,6 @@ class UPnPService(BaseController):
         return self._path + "/service.xml" 
 
     @expose("service.xml")
-    def _on_description(self):
+    def _on_description(self, *args):
         self.response.headers["Content-Type"] = "text/xml"
         return self._description

@@ -20,15 +20,14 @@
 """
 from uuid import uuid4
 from xml.etree.ElementTree import Element, SubElement, ElementTree
-from circuitsx.tools import replace_targets
-from circuits.web.controllers import expose, BaseController, Controller
+from circuits.web.controllers import expose, Controller
 from cocy.providers import BinarySwitch
 from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_SERVICE_ID_PREFIX
 from util.compquery import Queryable
 from util.misc import parseSoapRequest
 from circuitsx.web.dispatchers.dispatcher import ScopedChannel
 
-class UPnPDeviceAdapter(BaseController, Queryable):
+class UPnPDeviceAdapter(Queryable):
     """
     This class publishes a :class:`cocy.Provider` as a UPnP device.
     """
@@ -111,8 +110,8 @@ class UPnPDeviceAdapter(BaseController, Queryable):
             def write(self, value):
                 self.result += value
         writer = Writer()
-        ElementTree(desc).write(writer, xml_declaration=True,
-                                method="xml", encoding="utf-8")
+        writer.write("<?xml version='1.0' encoding='utf-8'?>\n")
+        ElementTree(desc).write(writer, encoding="utf-8")
         self.description = writer.result
 
         # Create an adapter that makes links this class with the web
@@ -198,7 +197,7 @@ class UPnPDeviceController(Controller):
     def __init__(self, channel):
         super(UPnPDeviceController, self).__init__(channel=channel);
 
-    def control(self):
+    def control(self, *args):
         payload = parseSoapRequest(self.request)[2]
         action = payload.tag
         for node in payload:
@@ -207,12 +206,12 @@ class UPnPDeviceController(Controller):
         self.response.headers["Content-Type"] = "text/xml"
         return "control"
 
-    def sub(self):
+    def sub(self, *args):
         self.response.headers["Content-Type"] = "text/xml"
         return "sub"
     
     @expose("description.xml")
-    def description(self):
+    def description(self, *args):
         self.response.headers["Content-Type"] = "text/xml"
-        return self.manager.description
+        return self.parent.description
 

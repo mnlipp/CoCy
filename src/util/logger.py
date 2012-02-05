@@ -233,7 +233,7 @@ class Logger(BaseComponent):
              msg, args, None, event.func)
         self._logger.handle(record)
 
-    @handler("registered", target="*")
+    @handler("registered", channel="*")
     def _on_registered(self, component, manager):
         if isinstance(component, LogSupport) \
             and component._logger_channel_selection == self.channel:
