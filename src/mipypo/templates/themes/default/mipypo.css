@@ -1,0 +1,39 @@
+body {
+  font-family: Arial,Verdana,Arial,Helvetica,sans-serif;
+  font-size: 1em;
+}
+
+.widget {
+  background: white;
+  border: 1px solid #BBB6AD;
+  margin: 10px 7px;
+  overflow: hidden;
+  border-radius: 4px;
+  font-size: 14px;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+}
+
+.widgetTitle {
+  background: #B5B0A7;
+  border-radius: 4px 4px 0 0;
+  -moz-border-radius: 4px 4px 0 0;
+  -webkit-border-radius: 4px 4px 0 0;
+  width: 100%;
+  cursor: move;
+  font-size: 10pt;
+  font-weight: bold;
+  padding-bottom: 4px;
+}
+
+.widgetLabel {
+  font-size: 18px;
+  padding: 2px 0 0 10px;
+  font-weight: normal;
+  color: white;
+  text-shadow: 1px 1px 2px #7E7363;
+}
+
+.widgetBody {
+}
+

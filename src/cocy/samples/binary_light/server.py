@@ -20,6 +20,7 @@
 """
 from util.python26fix import install_python26_fix
 install_python26_fix()
+from mipypo.core.portal import Portal
 
 from circuits.core.debugger import Debugger
 from circuits.core.components import Component
@@ -54,32 +55,6 @@ class ErrorHandler(Component):
     def exception(self, error_type, value, traceback, handler=None):
         sys.exit();
 
-class UI(BaseServer):
-
-    class Root(Controller):
-
-        channel = ScopedChannel("ui", "/")
-
-        def index(self):
-            return "Hello World!"
-
-    def __init__(self, port):
-        super(UI, self).__init__(("", port), channel="ui")
-        # Dispatcher for "/ui".
-        ScopeDispatcher(channel="ui").register(self)
-        # Root page
-        UI.Root().register(self);
-        self.fireEvent(MgmtControllerQuery())
-        
-    @handler("mgmt_controller_query", priority=-999)
-    def _on_controllers(self, event):
-        result = event.value.value 
-        if result == None:
-            return
-        if not isinstance(result, list):
-            result = [result]
-        pass
-
 if __name__ == '__main__':
 
     application = Application("CoCy", CONFIG)
@@ -87,7 +62,8 @@ if __name__ == '__main__':
     ErrorHandler().register(application)
     # Build a web (HTTP) server for handling user interface requests.
     port = int(application.config.get("ui", "port", 0))
-    UI(port).register(application)
+    portal_server = BaseServer(("", port), channel="ui").register(application)
+    Portal(portal_server).register(application)
     
     upnp_dev_server \
         = UPnPDeviceServer(application.app_dir).register(application)
