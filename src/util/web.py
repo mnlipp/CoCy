@@ -34,9 +34,10 @@ class BaseControllerExt(BaseController):
         self.engine = tenjin.Engine()
 
     def serve_tenjin(self, request, response, path, context, 
-                     type=None, disposition=None, name=None):
+                     type=None, disposition=None, name=None,
+                     engine=None):
     
-        if not os.path.isabs(path):
+        if not engine and not os.path.isabs(path):
             raise ValueError("'%s' is not an absolute path." % path)
 
         if type is None:
@@ -45,6 +46,8 @@ class BaseControllerExt(BaseController):
             i = path.rfind('.')
             if i != -1:
                 ext = path[i:].lower()
+            if ext == ".pyhtml":
+                ext = ".html"
             type = mimetypes.types_map.get(ext, "text/plain")
         response.headers['Content-Type'] = type
     
@@ -55,9 +58,9 @@ class BaseControllerExt(BaseController):
             response.headers["Content-Disposition"] = cd
 
         try:
-            response.body = self.engine.render(path, context)
-        except:
-            traceback.print_exc()
-            return NotFound(request, response)
-        
+            response.body = (engine or self.engine).render(path, context)
+        except Exception as error:
+            etype, evalue, etraceback = sys.exc_info()
+            error = (etype, evalue, traceback.format_tb(etraceback))
+            return HTTPError(request, response, 500, error=error)        
         return response

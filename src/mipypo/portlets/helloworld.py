@@ -18,29 +18,13 @@
 
 .. codeauthor:: mnl
 """
-from circuits.core.events import Event
-from circuits.core.components import BaseComponent
-from circuits.core.handlers import handler
+from mipypo.core.portlet import Portlet
 
-class ComponentQuery(Event):
-    
-    channels = ("component_query")
-    
-    def __init__(self, query_function, **kwargs):
-        super(ComponentQuery, self).__init__()
-        self._query_function = query_function
+class HelloWorldPortlet(Portlet):
 
-    def decide(self, component):
-        try:
-            if self._query_function(component):
-                return component
-            else:
-                return None
-        except:
-            return None
-
-class Queryable(object):
+    def description(self, locales=[]):
+        return Portlet.Description("Hello World Portlet")
     
-    @handler("component_query")
-    def _on_component_query(self, event):
-        return event.decide(self)
+    def render(self, mode=Portlet.RenderMode.View,
+               window_state=Portlet.WindowState.Normal, locales=[]):
+        return "<div>Hello World!</div>"

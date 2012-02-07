@@ -26,8 +26,9 @@ from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_SERVICE_ID_PREFIX
 from util.compquery import Queryable
 from util.misc import parseSoapRequest
 from circuitsx.web.dispatchers.dispatcher import ScopedChannel
+from circuits.core.components import BaseComponent
 
-class UPnPDeviceAdapter(Queryable):
+class UPnPDeviceAdapter(BaseComponent, Queryable):
     """
     This class publishes a :class:`cocy.Provider` as a UPnP device.
     """

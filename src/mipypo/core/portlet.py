@@ -18,29 +18,37 @@
 
 .. codeauthor:: mnl
 """
-from circuits.core.events import Event
 from circuits.core.components import BaseComponent
-from circuits.core.handlers import handler
+from abc import ABCMeta, abstractmethod
 
-class ComponentQuery(Event):
+class Portlet(BaseComponent):
     
-    channels = ("component_query")
+    __metaclass__ = ABCMeta
     
-    def __init__(self, query_function, **kwargs):
-        super(ComponentQuery, self).__init__()
-        self._query_function = query_function
+    class RenderMode:
+        View = 1
+        Edit = 2
+        Help = 3
+        Preview = 4
+        
+    class WindowState:
+        Normal = 1
+        Minimized = 2
+        Maximized = 3
+        Solo = 4
 
-    def decide(self, component):
-        try:
-            if self._query_function(component):
-                return component
-            else:
-                return None
-        except:
-            return None
+    class Description:
+        def __init__(self, title):
+            self._title = title
+            
+        @property
+        def title(self):
+            return self._title
 
-class Queryable(object):
+    def description(self, locales=[]):
+        return Portlet.Description("Base Portlet")
     
-    @handler("component_query")
-    def _on_component_query(self, event):
-        return event.decide(self)
+    def render(self, mode=RenderMode.View,
+               window_state=WindowState.Normal, locales=[]):
+        return "<div class=\"portlet-msg-error\">" \
+                + "Portlet not implemented yet</div>"

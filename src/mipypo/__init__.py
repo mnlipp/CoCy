@@ -20,5 +20,6 @@
 """
 
 from .core.portal import Portal
+from .core.portlet import Portlet
 
-__all__ = (Portal)
+__all__ = (Portal, Portlet)

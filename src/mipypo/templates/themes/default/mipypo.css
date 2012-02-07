@@ -20,7 +20,6 @@ body {
   -moz-border-radius: 4px 4px 0 0;
   -webkit-border-radius: 4px 4px 0 0;
   width: 100%;
-  cursor: move;
   font-size: 10pt;
   font-weight: bold;
   padding-bottom: 4px;
@@ -35,5 +34,49 @@ body {
 }
 
 .widgetBody {
+}
+
+<%--***********************************************************************--%>
+<%-- Portlets SHOULD use the CSS style definitions from this specification --%>
+<%-- in order to participate in a uniform display of their content by      --%>
+<%-- various Consumers.                                                    --%>
+<%--***********************************************************************--%>
+
+<%-- FONTS --%>
+
+<%-- Font attributes for the "normal" fragment font. Used for the display
+     of non-accentuated information. --%>
+.portlet-font {
+  font-family: Arial,Verdana,Arial,Helvetica,sans-serif;
+  font-size: 1em;
+}
+
+<%-- Font attributes similar to the portlet-font but the color is lighter. --%>
+.portlet-font-dim {
+  font-family: Arial,Verdana,Arial,Helvetica,sans-serif;
+  font-size: 1em;
+  color: #808080;
+}
+
+<%-- MESSAGES --%>
+
+<%-- Status of the current operation --%>
+.portlet-msg-status {
+}
+
+<%-- Help messages, general additional information, etc. --%>
+.portlet-msg-info {
+}
+
+<%-- Error messages --%>
+.portlet-msg-error {
+}
+
+<%-- Warning messages --%>
+.portlet-msg-alert {
+}
+
+<%-- Verification of the successful completion of a task. --%>
+.portlet-msg-status {
 }
 

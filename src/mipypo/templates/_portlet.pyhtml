@@ -1,0 +1,12 @@
+<?py #@ARGS portlet, locales ?>
+<?py desc = portlet.description(locales=locales) ?>
+<div class="widget">
+  <div class="widgetTitle">
+    <div class="widgetLabel">
+      {= desc.title =}
+    </div>
+  </div>
+  <div class="widgetBody portlet-font">
+    {== portlet.render(locales=locales) ==}
+  </div>
+</div>

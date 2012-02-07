@@ -25,22 +25,10 @@ from circuits.web.servers import BaseServer
 from circuitsx.web.dispatchers.dispatcher import ScopeDispatcher, ScopedChannel
 import os
 from util.web import BaseControllerExt
-
-class Root(BaseControllerExt):
-    
-    docroot = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                           "../templates"))
-    
-    @expose("index")
-    def index(self):
-        return self.serve_tenjin \
-            (self.request, self.response,
-             os.path.join(self.docroot, "index.tpl.html"), {})
-
-    @expose("stylesheet.css")
-    def stylesheet(self):
-        return self.serve_file(os.path.join(self.docroot,
-                                            "themes/default/mipypo.css"))
+from mipypo.portlets.helloworld import HelloWorldPortlet
+from circuits.core.handlers import handler
+from mipypo.core.portlet import Portlet
+import tenjin
 
 class Portal(BaseComponent):
 
@@ -48,12 +36,58 @@ class Portal(BaseComponent):
 
     def __init__(self, server=None, prefix=None, **kwargs):
         super(Portal, self).__init__(**kwargs)
+        self._portlets = []
         if server is None:
             server = BaseServer(("", 4444), channel=self.channel)
         else:
             self.channel = server.channel
         self.server = server
         dispatcher = ScopeDispatcher(channel = server.channel).register(server)
-        Root(channel=ScopedChannel(server.channel, prefix if prefix else "/")) \
+        Root(self,
+             channel=ScopedChannel(server.channel, prefix if prefix else "/")) \
             .register(dispatcher)
+            
+        HelloWorldPortlet(channel=self.channel).register(self)
         
+    @handler("registered")
+    def _on_registered(self, c, m):
+        if not isinstance(c, Portlet):
+            return
+        if not c in self._portlets:
+            self._portlets.append(c)
+
+    @handler("unregistered")
+    def _on_unregistered(self, c, m):
+        if not isinstance(c, Portlet):
+            return
+        if c in self._portlets:
+            self._portlets.remove(c)
+
+    @property
+    def portlets(self):
+        return list(self._portlets)
+
+class Root(BaseControllerExt):
+    
+    docroot = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                           "../templates"))
+
+    def __init__(self, portal, **kwargs):
+        super(Root, self).__init__(**kwargs)
+        self._portal = portal
+        self.engine = tenjin.Engine(path=[self.docroot])
+    
+    @expose("index")
+    def index(self):
+        context = {}
+        context["portlets"] = self._portal.portlets
+        context["locales"] = ["en_US"]
+        return self.serve_tenjin \
+            (self.request, self.response, "index.pyhtml", context,
+             engine=self.engine, type="text/html")
+
+    @expose("stylesheet.css")
+    def stylesheet(self):
+        return self.serve_file(os.path.join(self.docroot,
+                                            "themes/default/mipypo.css"))
+
