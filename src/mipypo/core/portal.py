@@ -34,7 +34,8 @@ class Portal(BaseComponent):
 
     channel = "mipypo"
 
-    def __init__(self, server=None, prefix=None, **kwargs):
+    def __init__(self, server=None, prefix=None, 
+                 portal_title=None, templates_dir=None, **kwargs):
         super(Portal, self).__init__(**kwargs)
         self._portlets = []
         if server is None:
@@ -44,7 +45,9 @@ class Portal(BaseComponent):
         self.server = server
         dispatcher = ScopeDispatcher(channel = server.channel).register(server)
         Root(self,
-             channel=ScopedChannel(server.channel, prefix if prefix else "/")) \
+             channel=ScopedChannel(server.channel, prefix if prefix else "/"),
+             portal_title=portal_title,
+             templates_dir=templates_dir) \
             .register(dispatcher)
             
         HelloWorldPortlet(channel=self.channel).register(self)
@@ -75,7 +78,10 @@ class Root(BaseControllerExt):
     def __init__(self, portal, **kwargs):
         super(Root, self).__init__(**kwargs)
         self._portal = portal
-        self.engine = tenjin.Engine(path=[self.docroot])
+        path=[self.docroot]
+        if kwargs.has_key("templates_dir"):
+            path.append(kwargs.get("templates_dir"))
+        self.engine = tenjin.Engine(path=path)
     
     @expose("index")
     def index(self):
@@ -86,8 +92,8 @@ class Root(BaseControllerExt):
             (self.request, self.response, "index.pyhtml", context,
              engine=self.engine, type="text/html")
 
-    @expose("stylesheet.css")
-    def stylesheet(self):
-        return self.serve_file(os.path.join(self.docroot,
-                                            "themes/default/mipypo.css"))
+    @expose("theme-resource")
+    def theme_resource(self, resource):
+        return self.serve_file \
+            (os.path.join(self.docroot, "themes/default", resource))
 

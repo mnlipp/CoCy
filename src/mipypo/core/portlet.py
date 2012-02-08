@@ -25,25 +25,50 @@ class Portlet(BaseComponent):
     
     __metaclass__ = ABCMeta
     
-    class RenderMode:
+    class RenderMode(object):
         View = 1
         Edit = 2
         Help = 3
         Preview = 4
         
-    class WindowState:
+    class WindowState(object):
         Normal = 1
         Minimized = 2
         Maximized = 3
         Solo = 4
 
-    class Description:
-        def __init__(self, title):
+    class MarkupType(object):
+
+        def __init__(self, modes = None, states = None):
+            self._modes = modes or [Portlet.RenderMode.View]
+            self._states = states or [Portlet.WindowState.Normal]
+        
+        @property
+        def render_modes(self):
+            return self._modes
+        
+        @property
+        def window_states(self):
+            return self.states
+
+    class Description(object):
+        def __init__(self, title, markup_types=None, locale = "en-US"):
             self._title = title
-            
+            self._markup_types = markup_types \
+                or dict({ "text/html": Portlet.MarkupType()})
+            self._locale = locale
+
         @property
         def title(self):
             return self._title
+        
+        @property
+        def markup_types(self):
+            return self._markup_types
+
+        @property
+        def locale(self):
+            return self._locale
 
     def description(self, locales=[]):
         return Portlet.Description("Base Portlet")

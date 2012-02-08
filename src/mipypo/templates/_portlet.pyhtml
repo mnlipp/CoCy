@@ -3,6 +3,9 @@
 <div class="widget">
   <div class="widgetTitle">
     <div class="widgetLabel">
+      <div class="widgetButtons">
+        Button
+      </div>
       {= desc.title =}
     </div>
   </div>
