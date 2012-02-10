@@ -79,8 +79,9 @@ class Root(BaseControllerExt):
         super(Root, self).__init__(**kwargs)
         self._portal = portal
         path=[self.docroot]
-        if kwargs.has_key("templates_dir"):
-            path.append(kwargs.get("templates_dir"))
+        self._templates_override = kwargs.get("templates_dir", None)
+        if self._templates_override:
+            path.append(self._templates_override)
         self.engine = tenjin.Engine(path=path)
     
     @expose("index")
@@ -89,11 +90,17 @@ class Root(BaseControllerExt):
         context["portlets"] = self._portal.portlets
         context["locales"] = ["en_US"]
         return self.serve_tenjin \
-            (self.request, self.response, "index.pyhtml", context,
+            (self.request, self.response, "portal.pyhtml", context,
              engine=self.engine, type="text/html")
 
     @expose("theme-resource")
     def theme_resource(self, resource):
-        return self.serve_file \
-            (os.path.join(self.docroot, "themes/default", resource))
+        
+        if self._templates_override:
+            f = os.path.join(self._templates_override, 
+                             "themes/default", resource)
+            if os.access(f, os.R_OK):
+                return self.serve_file (f)
+        f = os.path.join(self.docroot, "themes/default", resource)
+        return self.serve_file (f)
 

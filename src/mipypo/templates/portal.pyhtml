@@ -1,0 +1,50 @@
+<?py #@ARGS portlets, locales ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Test</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="description" content="This is ...">
+  <link rel="shortcut icon" href="favicon.ico"> 
+  <link rel="stylesheet" type="text/css" href="theme-resource/mipypo.css">
+</head>
+
+<body>
+  <div class="tabs">
+<span class="tab activeTab closableTab" href="#">
+  <a class="tabLabel" href="#">Hallo</a><a class="tabCloser" href="#close"><img src="theme-resource/close-tab-active.png"></a>
+</span>
+<span class="tab closableTab" href="#">
+  <a class="tabLabel" href="#">Hallo</a><a class="tabCloser" href="#close"><img src="theme-resource/close-tab-active.png"></a>
+</span>
+<span class="tab closableTab" href="#">
+  <a class="tabLabel" href="#">Hallo</a><a class="tabCloser" href="#close"><img src="theme-resource/close-tab-active.png"></a>
+</span>
+<span class="tab closableTab" href="#">
+  <a class="tabLabel" href="#">Hallo</a><a class="tabCloser" href="#close"><img src="theme-resource/close-tab-active.png"></a>
+</span>
+<span class="tab closableTab" href="#">
+  <a class="tabLabel" href="#">Hallo</a><a class="tabCloser" href="#close"><img src="theme-resource/close-tab-active.png"></a>
+</span>
+<span>&nbsp;</span>
+  </div>
+  <div class="page">
+    <div style="float:left;width:33%;">
+      <?py for portlet in portlets[0::3]: ?>
+        <?py include('_portlet.pyhtml', portlet=portlet) ?>
+      <?py #endfor ?>
+    </div>
+    <div style="float:left;width:33%;">
+      <?py for portlet in portlets[1::3]: ?>
+        <?py include('_portlet.pyhtml', portlet=portlet) ?>
+      <?py #endfor ?>
+    </div>
+    <div style="float:left;width:33%;">
+      <?py for portlet in portlets[2::3]: ?>
+        <?py include('_portlet.pyhtml', portlet=portlet) ?>
+      <?py #endfor ?>
+    </div>
+    <div style="clear:both;height:0px;overflow:hissen;"></div>
+  </div>
+</body>
+</html>

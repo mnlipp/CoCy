@@ -52,8 +52,10 @@ class Portlet(BaseComponent):
             return self.states
 
     class Description(object):
-        def __init__(self, title, markup_types=None, locale = "en-US"):
-            self._title = title
+        def __init__(self, short_title, title = None, markup_types=None,
+                     locale = "en-US"):
+            self._short_title = short_title
+            self._title = title or short_title
             self._markup_types = markup_types \
                 or dict({ "text/html": Portlet.MarkupType()})
             self._locale = locale
