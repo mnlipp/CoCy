@@ -127,12 +127,3 @@ class ScopeDispatcher(Dispatcher):
             channel = ScopedChannel(self.channel, channel)
         return name, channel, vpath
 
-
-    @handler("request_success", channel="*", filter=True)
-    def _on_request_success(self, event, e):
-        if getattr(event, "_retargeted", False):
-            return False
-        setattr(event, "_retargeted", True)
-        self.fire(event, *e.channels)
-        return event.value
-    
