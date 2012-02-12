@@ -23,8 +23,11 @@ from mipypo.core.portlet import Portlet
 class HelloWorldPortlet(Portlet):
 
     def description(self, locales=[]):
-        return Portlet.Description("Hello World Portlet")
+        return Portlet.Description(self._handle, "Hello World Portlet")
     
     def render(self, mode=Portlet.RenderMode.View,
                window_state=Portlet.WindowState.Normal, locales=[]):
-        return "<div>Hello World!</div>"
+        if window_state == Portlet.WindowState.Solo:
+            return "<div style=\"padding: 1em; font-size: 400%\">Hello World!</div>"
+        else:
+            return "<div style=\"padding: 1em;\">Hello World!</div>"

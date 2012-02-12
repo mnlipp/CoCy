@@ -20,6 +20,7 @@
 """
 from circuits.core.components import BaseComponent
 from abc import ABCMeta, abstractmethod
+import uuid
 
 class Portlet(BaseComponent):
     
@@ -52,8 +53,9 @@ class Portlet(BaseComponent):
             return self.states
 
     class Description(object):
-        def __init__(self, short_title, title = None, markup_types=None,
-                     locale = "en-US"):
+        def __init__(self, handle, short_title, title = None,  
+                     markup_types=None, locale = "en-US"):
+            self._handle = handle
             self._short_title = short_title
             self._title = title or short_title
             self._markup_types = markup_types \
@@ -61,8 +63,16 @@ class Portlet(BaseComponent):
             self._locale = locale
 
         @property
+        def short_title(self):
+            return self._short_title
+        
+        @property
         def title(self):
             return self._title
+
+        @property
+        def handle(self):
+            return self._handle
         
         @property
         def markup_types(self):
@@ -72,8 +82,12 @@ class Portlet(BaseComponent):
         def locale(self):
             return self._locale
 
+    def __init__(self, *args, **kwargs):
+        super(Portlet, self).__init__(*args, **kwargs)
+        self._handle = uuid.uuid4()
+
     def description(self, locales=[]):
-        return Portlet.Description("Base Portlet")
+        return Portlet.Description(self._handle, "Base Portlet")
     
     def render(self, mode=RenderMode.View,
                window_state=WindowState.Normal, locales=[]):

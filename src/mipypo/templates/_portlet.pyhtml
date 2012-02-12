@@ -2,11 +2,13 @@
 <?py desc = portlet.description(locales=locales) ?>
 <div class="widget">
   <div class="widgetTitle">
-    <div class="widgetLabel">
-      <div class="widgetButtons">
-        Button
-      </div>
+    <span class="widgetLabel">
       {= desc.title =}
+    </span>
+    <div class="widgetButtons">
+      <span class="widgetButton">
+        <a href="?portlet={= desc.handle =}&action=solo"><img src="theme-resource/fullscreen.png"></a>
+      </span>
     </div>
   </div>
   <div class="widgetBody portlet-font">

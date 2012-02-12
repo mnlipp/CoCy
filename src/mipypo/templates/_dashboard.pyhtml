@@ -1,0 +1,17 @@
+<?py #@ARGS portlets, locales ?>
+<div style="float:left;width:33%;">
+  <?py for portlet in portlets[0::3]: ?>
+    <?py include('_portlet.pyhtml', portlet_idx=(), portlet=portlet) ?>
+  <?py #endfor ?>
+</div>
+<div style="float:left;width:33%;">
+  <?py for portlet in portlets[1::3]: ?>
+    <?py include('_portlet.pyhtml', portlet=portlet) ?>
+  <?py #endfor ?>
+</div>
+<div style="float:left;width:33%;">
+  <?py for portlet in portlets[2::3]: ?>
+    <?py include('_portlet.pyhtml', portlet=portlet) ?>
+  <?py #endfor ?>
+</div>
+<div style="clear:both;height:0px;overflow:hissen;"></div>

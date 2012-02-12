@@ -24,7 +24,7 @@ body {
 .tabLabel {
   text-decoration: none;
   color: #444;
-  padding: 4pt 2pt 4pt 14pt;
+  padding: 4pt 6pt 4pt 18pt;
 }
 
 .tab:hover {
@@ -36,7 +36,7 @@ body {
   visibility: hidden;
   position: relative;
   top: -9px;
-  left: 2px;
+  left: -2px;
   background: url("close-tab.png") top left no-repeat
 }
 
@@ -95,15 +95,18 @@ body {
 
 .widgetTitle:hover {
   background: #bdb7ae url('title-bg-hover.png');
+  vertical-align: middle;
 }
 
 .widgetButtons {
   display: none;
   float: right;
+  padding-top: 0.3em;
+  margin-right: 0.3em;
 }
 
 div.widgetTitle:hover .widgetButtons {
-  display: block;
+  display: inline;
 }
 
 .widgetLabel {

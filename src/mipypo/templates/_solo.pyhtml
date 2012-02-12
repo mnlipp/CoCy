@@ -1,0 +1,5 @@
+<?py from mipypo import Portlet ?>
+<?py #@ARGS tab, locales ?>
+  <div class="widgetBody portlet-font">
+    {== tab.portlet.render(window_state=Portlet.WindowState.Solo, locales=locales) ==}
+  </div>
