@@ -158,7 +158,9 @@ class _Root(BaseControllerExt):
         self.engine = tenjin.Engine(path=path)
     
     @expose("index")
-    def index(self, **kwargs):
+    def index(self, *args, **kwargs):
+        if len(args) > 0:
+            return
         if kwargs.get("action") == "select":
             self._portal.select_tab(int(kwargs.get("tab")))
         elif kwargs.get("action") == "close":
