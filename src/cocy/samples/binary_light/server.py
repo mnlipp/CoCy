@@ -20,20 +20,18 @@
 """
 from util.python26fix import install_python26_fix
 install_python26_fix()
-from mipypo.core.portal import Portal
 
+from cocy.portlets.device_directory import UPnPDirectoryPortlet
+from circuits_minpor import Portal
+from cocy.upnp.device_directory import UPnPDeviceDirectory
 from circuits.core.debugger import Debugger
 from circuits.core.components import Component
 import sys
-from circuits.web.controllers import Controller
 from circuits.web.servers import BaseServer
 from cocy.upnp import UPnPDeviceServer
 from cocy.samples.binary_light.misc import BinaryLight
 import os
-from util.application import Application
-from circuitsx.web.dispatchers.dispatcher import ScopeDispatcher, ScopedChannel
-from util.mgmtui import MgmtControllerQuery
-from circuits.core.handlers import handler
+from circuits_bricks.app import Application
 
 CONFIG = {
     "logging": {
@@ -67,6 +65,8 @@ if __name__ == '__main__':
     
     upnp_dev_server \
         = UPnPDeviceServer(application.app_dir).register(application)
+    dev_dir = UPnPDeviceDirectory().register(application)
+    UPnPDirectoryPortlet().register(dev_dir)
     # SOAP().register(application)
     
     BinaryLight().register(application)

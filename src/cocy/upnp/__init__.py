@@ -27,7 +27,7 @@ from .device_server import UPnPDeviceServer
 from .device import UPnPDeviceAdapter
 from .ssdp import SSDPTranceiver
 
-__all__ = ("SSDP_PORT", "SSDP_ADDR", "SSDP_SCHEMAS",
+__all__ = ["SSDP_PORT", "SSDP_ADDR", "SSDP_SCHEMAS",
            "SSDP_DEVICE_SCHEMA", "UPNP_SERVICE_ID_PREFIX", 
            "UPnPDeviceServer", "SSDPTranceiver"
-)
+]

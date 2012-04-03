@@ -19,17 +19,26 @@
 .. codeauthor:: mnl
 """
 from circuits.core.components import BaseComponent
-from cocy.upnp.service import UPnPService
-from cocy.upnp.device import UPnPDeviceAdapter
-from cocy.upnp.ssdp import DeviceAvailable, DeviceUnavailable
 from circuits.core.handlers import handler
 from circuits.web.servers import BaseServer
-from circuitsx.web.dispatchers.dispatcher import ScopeDispatcher, ScopedChannel
-from circuits.web.controllers import BaseController, expose, Controller
+from circuits_bricks.web import ScopeDispatcher, ScopedChannel
+from circuits.web.controllers import Controller, BaseController, expose
+from circuits.core.events import Event
+from circuits.core.utils import findroot, flatten
+from cocy.upnp.service import UPnPService
+from cocy.upnp.device import UPnPDeviceAdapter
 from cocy.upnp.ssdp import SSDPTranceiver
 from cocy.providers import Provider
 import anydbm
 import os
+
+class DeviceAvailable(Event):
+    name = "device_available"
+    
+
+class DeviceUnavailable(Event):
+    name = "device_unavailable"
+
 
 class UPnPDeviceServer(BaseComponent):
     """
@@ -62,10 +71,6 @@ class UPnPDeviceServer(BaseComponent):
         # from failing.
         DummyRoot().register(disp)
         
-        # SSDP server. Needs to know the port used by the web server
-        # for announcements
-        SSDPTranceiver().register(self)
-        
         # Initially empty list of providers
         self._devices = []
         
@@ -76,6 +81,13 @@ class UPnPDeviceServer(BaseComponent):
         # Open the database for uuid persistence 
         self._uuid_db = anydbm.open(os.path.join(path, 'upnp_uuids'), 'c')
 
+    def register(self, parent):
+        super(UPnPDeviceServer, self).register(parent)
+        # SSDP transceiver, may exist only once
+        if not any([isinstance(c, SSDPTranceiver) \
+                    for c in flatten(findroot(self))]):
+            SSDPTranceiver().register(self.parent)
+        return self
 
     @handler("registered")
     def _on_registered(self, component, manager):
@@ -113,10 +125,12 @@ class UPnPDeviceServer(BaseComponent):
         self.fireEvent(event)
         return True
 
-class DummyRoot(Controller):
+class DummyRoot(BaseController):
     
     channel = ScopedChannel("upnp-web", "/")
     
+    @expose("f3c3G5")
     def index(self):
-        return ""
+        return "Hello"
     
+

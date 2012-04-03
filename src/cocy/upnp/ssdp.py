@@ -20,7 +20,7 @@
 """
 from circuits.core.components import BaseComponent
 from circuits.core.handlers import handler
-from circuitsx.net.sockets import UDPMCastServer
+from circuits_bricks.net.sockets import UDPMCastServer
 import os
 from circuits.io.events import Write
 import platform
@@ -29,7 +29,7 @@ import time
 from circuits.core.timers import Timer
 from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS
 import datetime
-from util.compquery import ComponentQuery
+from circuits_bricks.misc import ComponentQuery
 from circuits.core.events import Event
 from circuits.web.controllers import Controller
 
@@ -212,14 +212,6 @@ class SSDPSender(BaseComponent):
         return template
 
 
-class DeviceAvailable(Event):
-    name = "device_available"
-    
-
-class DeviceUnavailable(Event):
-    name = "device_unavailable"
-    
-
 class UPnPDeviceMatch(Event):
     name = "device_match"
     
@@ -244,15 +236,11 @@ class UPnPDeviceQuery(ComponentQuery):
 
 class UPnPDeviceNotification(Event):
     
-    channel = "device_notification"
+    name = "upnp_device_notification"
     
     def __init__(self, location, notification_type, max_age, server, usn):
-        super(UPnPDeviceNotification, self).__init__()
-        self.location = location
-        self.type = notification_type
-        self.max_age = max_age
-        self.server = server
-        self.usn = usn
+        super(UPnPDeviceNotification, self).__init__ \
+            (location, notification_type, max_age, server, usn)
 
 class SSDPReceiver(BaseComponent):
 

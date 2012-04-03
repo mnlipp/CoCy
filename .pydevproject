@@ -11,6 +11,9 @@
 <path>/CoCy/lib</path>
 </pydev_pathproperty>
 <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
-<path>/home/mnl/devel/eclipse-se-workspace/circuits-dev</path>
+<path>/home/mnl/devel/circuits-dev</path>
+<path>/home/mnl/devel/CircuitsBricks</path>
+<path>/home/mnl/devel/CircuitsMinimalPortal</path>
+<path>/home/mnl/devel/ResourceBundleTranslations</path>
 </pydev_pathproperty>
 </pydev_project>

@@ -1,7 +1,7 @@
 """
 ..
    This file is part of the CoCy program.
-   Copyright (C) 2011 Michael N. Lipp
+   Copyright (C) 2012 Michael N. Lipp
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,22 +15,4 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-.. codeauthor:: mnl
 """
-from circuits.core.events import Event
-
-class MgmtControllerQuery(Event):
-    """
-    This event is issued when a web based management user interface
-    for an application is build. Every component that wants to contribute
-    to such an interface listens for this event and returns a new
-    object of type :class:`circuits.web.controllers.BaseController`.
-    
-    The controller returned should produce output that is based on
-    the style-sheet that is passed as the first parameter of this
-    event.  
-    """
-
-    target = "*"
-    channel = "mgmt_controller_query"

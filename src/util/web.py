@@ -19,7 +19,7 @@
 .. codeauthor:: mnl
 """
 from circuits.web.controllers import BaseController
-from circuits.web.errors import HTTPError, NotFound, Redirect, Unauthorized
+from circuits.web.errors import HTTPError
 
 import os
 import sys, traceback

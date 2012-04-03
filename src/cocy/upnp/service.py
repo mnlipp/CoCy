@@ -20,7 +20,7 @@
 """
 from circuits.web.controllers import BaseController, expose
 import os
-from circuitsx.web.dispatchers.dispatcher import ScopedChannel
+from circuits_bricks.web import ScopedChannel
 
 
 class UPnPService(BaseController):

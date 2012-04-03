@@ -21,4 +21,4 @@
 
 from providers import Provider, BinarySwitch
 
-__all__ = (BinarySwitch)
+__all__ = ["Provider", "BinarySwitch"]

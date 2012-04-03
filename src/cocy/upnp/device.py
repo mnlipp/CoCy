@@ -23,9 +23,9 @@ from xml.etree.ElementTree import Element, SubElement, ElementTree
 from circuits.web.controllers import expose, Controller
 from cocy.providers import BinarySwitch
 from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_SERVICE_ID_PREFIX
-from util.compquery import Queryable
+from circuits_bricks.misc import Queryable
 from util.misc import parseSoapRequest
-from circuitsx.web.dispatchers.dispatcher import ScopedChannel
+from circuits_bricks.web import ScopedChannel
 from circuits.core.components import BaseComponent
 
 class UPnPDeviceAdapter(BaseComponent, Queryable):

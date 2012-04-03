@@ -18,7 +18,7 @@
 
 .. codeauthor:: mnl
 """
-from circuitsx.web.dispatchers.dispatcher import ScopeDispatcher, ScopedChannel
+from circuits_bricks.web import ScopeDispatcher, ScopedChannel
 from circuits.web.servers import BaseServer
 from circuits import Debugger
 from circuits.web.controllers import BaseController, expose, Controller

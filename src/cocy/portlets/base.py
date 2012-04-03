@@ -1,7 +1,7 @@
 """
 ..
    This file is part of the CoCy program.
-   Copyright (C) 2011 Michael N. Lipp
+   Copyright (C) 2012 Michael N. Lipp
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,16 +18,13 @@
 
 .. codeauthor:: mnl
 """
-from mipypo.core.portlet import Portlet
+import tenjin
+import os
+from circuits_minpor import Portlet
 
-class HelloWorldPortlet(Portlet):
 
-    def description(self, locales=[]):
-        return Portlet.Description(self._handle, "Hello World Portlet")
-    
-    def render(self, mode=Portlet.RenderMode.View,
-               window_state=Portlet.WindowState.Normal, locales=[]):
-        if window_state == Portlet.WindowState.Solo:
-            return "<div style=\"padding: 1em; font-size: 400%\">Hello World!</div>"
-        else:
-            return "<div style=\"padding: 1em;\">Hello World!</div>"
+class CoCyPortlet(Portlet):
+
+    _engine = tenjin.Engine\
+        (path=[os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                            "templates"))])

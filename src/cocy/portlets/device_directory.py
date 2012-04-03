@@ -1,7 +1,7 @@
 """
 ..
    This file is part of the CoCy program.
-   Copyright (C) 2011 Michael N. Lipp
+   Copyright (C) 2012 Michael N. Lipp
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,3 +18,21 @@
 
 .. codeauthor:: mnl
 """
+from cocy.portlets.base import CoCyPortlet
+from circuits_minpor import Portlet
+from tenjin.helpers import *
+
+class UPnPDirectoryPortlet(CoCyPortlet):
+
+    def __init__(self):
+        super(UPnPDirectoryPortlet, self).__init__()
+
+    def description(self, locales=[]):
+        return Portlet.Description(self._handle, "UPnP Devices")
+    
+    def render(self, mode=Portlet.RenderMode.View,
+               window_state=Portlet.WindowState.Normal, locales=[]):
+        if window_state == Portlet.WindowState.Solo:
+            return self._engine.render("device_directory_solo.pyhtml", {})
+        else:
+            return self._engine.render("device_directory.pyhtml", {})
