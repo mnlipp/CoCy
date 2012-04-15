@@ -18,13 +18,23 @@
 
 .. codeauthor:: mnl
 """
-import tenjin
-import os
-from circuits_minpor import Portlet
+from circuits.core.components import BaseComponent
+from circuits.core.handlers import handler
+from cocy.upnp.device_server import UPnPDeviceServer
+from cocy.portlets.device_directory import UPnPDirectoryPortlet
+from cocy.portlets.device_server import UPnPDeviceServerPortlet
+from cocy.upnp.device_directory import UPnPDeviceDirectory
 
+class PortletsFactory(BaseComponent):
+    '''
+    classdocs
+    '''
+    
+    @handler("registered", channel="*")
+    def _on_registered(self, c, m):
+        if isinstance(c, UPnPDeviceDirectory):
+            UPnPDirectoryPortlet(c).register(self)
+        elif isinstance(c, UPnPDeviceServer):
+            UPnPDeviceServerPortlet(c).register(self)
 
-class CoCyPortlet(Portlet):
-
-    _engine = tenjin.Engine\
-        (path=[os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                            "templates"))])
+    

@@ -1,1 +1,7 @@
-<div style="padding: 1em;">Hello World!</div>
+<?py #@ARGS portlet, mode, window_state, theme, locales, device_directory ?>
+<?py from circuits_minpor import Portlet ?>
+<div style="padding: 1em;">
+  <?py for device in device_directory.devices: ?>
+  <p>{= device.friendly_name =}</p>
+  <?py #endfor ?>
+</div>

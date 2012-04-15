@@ -1,0 +1,3 @@
+<?py #@ARGS portlet, mode, window_state, theme, locales, device_server ?>
+<?py from circuits_minpor import Portlet ?>
+<div>Local port: {= device_server.web_server.port =}</div>

@@ -23,22 +23,23 @@ from tenjin.helpers import *
 from circuits_minpor.portlet import TemplatePortlet
 import os
 
-class UPnPDirectoryPortlet(TemplatePortlet):
+class UPnPDeviceServerPortlet(TemplatePortlet):
 
-    def __init__(self, device_directory):
-        super(UPnPDirectoryPortlet, self) \
+    def __init__(self, device_server):
+        super(UPnPDeviceServerPortlet, self) \
             .__init__(os.path.join(os.path.dirname(__file__), "templates"), 
-                      "device_directory")
-        self._device_directory = device_directory
+                      "device_server")
+        self._device_server = device_server
 
     def description(self, locales=[]):
         return Portlet.Description\
-            (self._handle, "Detected UPnP Devices")
+            (self._handle, "Published UPnP Devices")
 
     def do_render(self, mime_type, mode, window_state, locales, url_generator, 
                    key_language="en", context_exts = {}, globs_exts = {},
                    **kwargs):
-        return super(UPnPDirectoryPortlet, self)\
+        return super(UPnPDeviceServerPortlet, self)\
             .do_render(mime_type, mode, window_state, locales, url_generator,
                        key_language, context_exts =
-                       { "device_directory": self._device_directory })
+                       { "device_server": self._device_server })
+

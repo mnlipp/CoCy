@@ -27,11 +27,13 @@ import platform
 from socket import gethostname, gethostbyname
 import time
 from circuits.core.timers import Timer
-from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS
+from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS, UPNP_ROOTDEVICE
 import datetime
 from circuits_bricks.misc import ComponentQuery
 from circuits.core.events import Event
 from circuits.web.controllers import Controller
+from logging import INFO
+from circuits_bricks.app.logger import Log
 
 class SSDPTranceiver(BaseComponent):
     '''The SSDP protocol server component
@@ -112,12 +114,12 @@ class SSDPSender(BaseComponent):
         # Handle repeats
         if getattr(event, 'times_sent', 0) < 3:
             self._timers[upnp_device.uuid] \
-                = Timer(0.25, event, event.channel[1]).register(self)
+                = Timer(0.25, event, *event.channels).register(self)
             event.times_sent = getattr(event, 'times_sent', 0) + 1
         else:
             self._timers[upnp_device.uuid] \
                 = Timer(self._message_expiry / 4,
-                        event, event.channel[1]).register(self)
+                        event, *event.channels).register(self)
    
     @handler("device_unavailable", channel="upnp")
     def _on_device_unavailable(self, event, upnp_device):
@@ -143,6 +145,15 @@ class SSDPSender(BaseComponent):
                 self._send_uuid_message(upnp_device, "notify-result", inquirer)
             elif search_target.startswith("urn:"):
                 self._send_type_message(upnp_device, "notify-result", inquirer)
+            
+    @handler("upnp_search_request")
+    def _on_search_request(self, event, search_target=UPNP_ROOTDEVICE, mx=1):
+        self._send_template("m-search-request", 
+                            { "ST": search_target, "MX": mx })
+        # Handle repeats
+        if getattr(event, 'times_sent', 0) < 3:
+            Timer(mx, event, *event.channels).register(self)
+            event.times_sent = getattr(event, 'times_sent', 0) + 1
             
     def _update_message_env(self, upnp_device):
         self._message_env['CACHE-CONTROL'] = self._message_expiry
@@ -234,13 +245,30 @@ class UPnPDeviceQuery(ComponentQuery):
             component.fire(UPnPDeviceMatch(component, self._inquirer, \
                                            self._search_target), "ssdp")
 
-class UPnPDeviceNotification(Event):
+class UPnPDeviceAlive(Event):
     
-    name = "upnp_device_notification"
+    name = "upnp_device_alive"
     
     def __init__(self, location, notification_type, max_age, server, usn):
-        super(UPnPDeviceNotification, self).__init__ \
+        super(UPnPDeviceAlive, self).__init__ \
             (location, notification_type, max_age, server, usn)
+
+
+class UPnPDeviceByeBye(Event):
+    
+    name = "upnp_device_bye_bye"
+    
+    def __init__(self, usn):
+        super(UPnPDeviceByeBye, self).__init__(usn)
+
+
+class UPnPSearchRequest(Event):
+    
+    name = "upnp_search_request"
+    
+    def __init__(self, search_target=UPNP_ROOTDEVICE, mx=1, **kwargs):
+        super(UPnPSearchRequest, self).__init__(search_target, mx, **kwargs)
+
 
 class SSDPReceiver(BaseComponent):
 
@@ -251,8 +279,35 @@ class SSDPReceiver(BaseComponent):
 
     @handler("read")
     def _on_read(self, address, data):
+        
+        def istartswith(line, prefix):
+            return line[0:len(prefix)].upper() == prefix
+
+        def parse_lines(lines):
+            res = type("", (), {})()
+            for line in lines:
+                if istartswith(line, "CACHE-CONTROL:"):
+                    s = line.split(":", 1)[1].strip()
+                    setattr(res, "max_age", int(s.split("=", 1)[1].strip()))
+                elif istartswith(line, "LOCATION:"):
+                    setattr(res, "location", line.split(":", 1)[1].strip())
+                elif istartswith(line, "NT:"):
+                    setattr(res, "notification_type", 
+                            line.split(":", 1)[1].strip())
+                elif istartswith(line, "ST:"):
+                    # Handle search responses like alive messages
+                    setattr(res, "notification_type", 
+                            line.split(":", 1)[1].strip())
+                elif istartswith(line, "NTS:"):
+                    setattr(res, "sub_type", line.split(":", 1)[1].strip())
+                elif istartswith(line, "SERVER:"):
+                    setattr(res, "server", line.split(":", 1)[1].strip())
+                elif istartswith(line, "USN:"):
+                    setattr(res, "usn", line.split(":", 1)[1].strip())
+            return res
+        
         lines = data.splitlines()
-        if lines[0].startswith("M-SEARCH "):
+        if istartswith(lines[0], "M-SEARCH "):
             search_target = None
             for line in lines[1:len(lines)-1]:
                 if not line.startswith("ST:"):
@@ -264,23 +319,19 @@ class SSDPReceiver(BaseComponent):
                     f = lambda dev: dev.root_device
                 self.fire(UPnPDeviceQuery(f, address, search_target), "upnp")                        
                 return
-        elif lines[0].startswith("NOTIFY "):
-            location = None
-            max_age = None
-            notification_type = None
-            server = None
-            usn = None
-            for line in lines[1:]:
-                if line.startswith("CACHE-CONTROL:"):
-                    s = line.split(":", 1)[1].strip()
-                    max_age = s.split("=", 1)[1].strip()
-                elif line.startswith("LOCATION:"):
-                    location = line.split(":", 1)[1].strip()
-                elif line.startswith("NT:"):
-                    notification_type = line.split(":", 1)[1].strip()
-                elif line.startswith("SERVER:"):
-                    server = line.split(":", 1)[1].strip()
-                elif line.startswith("USN:"):
-                    usn = line.split(":", 1)[1].strip()
-            self.fire(UPnPDeviceNotification(location, notification_type, 
-                                             max_age, server, usn), "upnp")
+        elif istartswith(lines[0], "NOTIFY "):
+            data = parse_lines(lines[1:])
+            if data.sub_type == "ssdp:alive":
+                self.fire(UPnPDeviceAlive\
+                          (data.location, data.notification_type, 
+                           data.max_age, data.server, data.usn),
+                          "upnp")
+            elif data.sub_type == "ssdp:byebye":
+                self.fire(UPnPDeviceByeBye(data.usn), "upnp")
+        elif istartswith(lines[0], "HTTP/1.1 200 OK"):
+            data = parse_lines(lines[1:])
+            self.fire(Log(INFO, "Received M-SEARCH reply from " \
+                          + data.location))
+            self.fire(UPnPDeviceAlive\
+                      (data.location, data.notification_type, 
+                       data.max_age, data.server, data.usn), "upnp")
