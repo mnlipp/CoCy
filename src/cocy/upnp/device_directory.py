@@ -28,6 +28,8 @@ from circuits.web.client import Request
 import httplib
 from xml.etree.ElementTree import XML
 from circuits.core.timers import Timer
+from urlparse import urljoin
+from copy import copy
 
 class UPnPDeviceDirectory(BaseComponent):
 
@@ -35,9 +37,12 @@ class UPnPDeviceDirectory(BaseComponent):
 
     def __init__(self, *args, **kwargs):
         super(UPnPDeviceDirectory, self).__init__(*args, **kwargs)
+
+    @handler("started", channel="application")
+    def _on_started(self, component):
         self.fire(UPnPSearchRequest(), "ssdp")
 
-    @handler("upnp_device_alive")
+    @handler("upnp_device_alive", channel="*")
     def _on_device_alive \
         (self, location, notification_type, max_age, server, usn):
         if notification_type == UPNP_ROOTDEVICE:
@@ -59,10 +64,17 @@ class UPnPDeviceDirectory(BaseComponent):
                       and c.ready, self.components.copy())
 
 
+class IconInfo(object):
+    def __init__(self, width, height, url):
+        self.width = width
+        self.height = height
+        self.url = url
+
+
 class UPnPRootDevice(BaseComponent):
 
     def __init__(self, location, max_age, usn):
-        super(UPnPRootDevice, self).__init__()
+        super(UPnPRootDevice, self).__init__(channel=usn)
         self._location = location
         self._usn = usn
         self._ready = False
@@ -73,28 +85,42 @@ class UPnPRootDevice(BaseComponent):
             if response.status == httplib.OK:
                 self._initialize(response.read())
         self.addHandler(_on_response)
-        self.fire(Request("GET", location), self._client)
+        @handler("error", channel=self._comm_chan)
+        def _on_error(self, *args, **kwargs):
+            self._client.close()
+            self.unregister()
+        self.addHandler(_on_error)
+        self.fire(Request("GET", self._location), self._client)
         self._expiry_timer \
-            = Timer(max_age, UPnPDeviceByeBye(usn), "upnp").register(self)
+            = Timer(max_age, UPnPDeviceByeBye(usn)).register(self)
 
     def _initialize(self, xml_src):
         data = XML(xml_src)
         self._friendly_name = data.findtext \
             ("{%s}device/{%s}friendlyName" \
              % (SSDP_DEVICE_SCHEMA, SSDP_DEVICE_SCHEMA))
+        icons = data.findall \
+            ("{%s}device/{%s}iconList/{%s}icon" \
+             % (SSDP_DEVICE_SCHEMA, SSDP_DEVICE_SCHEMA, SSDP_DEVICE_SCHEMA))
+        self._icons = []
+        for icon in icons:
+            width = int(icon.findtext("{%s}width" % SSDP_DEVICE_SCHEMA))
+            height = int(icon.findtext("{%s}height" % SSDP_DEVICE_SCHEMA))
+            url = urljoin(self._location,
+                          icon.findtext("{%s}url" % SSDP_DEVICE_SCHEMA))
+            self._icons.append(IconInfo(width, height, url))
         self._ready = True
 
     @handler("upnp_device_alive")
     def _on_device_alive \
         (self, location, notification_type, max_age, server, usn):
-        if usn == self._usn:
-            self._expiry_timer.interval = max_age
-            self._expiry_timer.reset()
+        self._expiry_timer.interval = max_age
+        self._expiry_timer.reset()
 
-    @handler("upnp_device_bye_bye", channel="upnp")
+    @handler("upnp_device_bye_bye")
     def _on_device_bye_bye (self, usn):
-        if usn == self._usn:
-            self.unregister()
+        self._client.close()
+        self.unregister()
 
     @property
     def usn(self):
@@ -111,4 +137,8 @@ class UPnPRootDevice(BaseComponent):
     @property
     def friendly_name(self):
         return self._friendly_name
+
+    @property
+    def icons(self):
+        return copy(self._icons)
     

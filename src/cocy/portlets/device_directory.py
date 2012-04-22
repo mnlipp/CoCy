@@ -42,3 +42,22 @@ class UPnPDirectoryPortlet(TemplatePortlet):
             .do_render(mime_type, mode, window_state, locales, url_generator,
                        key_language, context_exts =
                        { "device_directory": self._device_directory })
+
+    def best_icon_url(self, device, height, default):
+        icons = device.icons
+        sel = None
+        for icon in icons:
+            if sel == None:
+                sel = icon
+                continue
+            if icon.height > height \
+                and sel.height < height \
+                or icon.height - height < sel.height - height:
+                sel = icon
+        if sel:
+            return sel.url
+        else:
+            return default
+
+    def host_name(self, device):
+        return device.location

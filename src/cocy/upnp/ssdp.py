@@ -252,6 +252,7 @@ class UPnPDeviceAlive(Event):
     def __init__(self, location, notification_type, max_age, server, usn):
         super(UPnPDeviceAlive, self).__init__ \
             (location, notification_type, max_age, server, usn)
+        self.channels = (usn,)
 
 
 class UPnPDeviceByeBye(Event):
@@ -260,6 +261,7 @@ class UPnPDeviceByeBye(Event):
     
     def __init__(self, usn):
         super(UPnPDeviceByeBye, self).__init__(usn)
+        self.channels = (usn,)
 
 
 class UPnPSearchRequest(Event):
@@ -324,14 +326,13 @@ class SSDPReceiver(BaseComponent):
             if data.sub_type == "ssdp:alive":
                 self.fire(UPnPDeviceAlive\
                           (data.location, data.notification_type, 
-                           data.max_age, data.server, data.usn),
-                          "upnp")
+                           data.max_age, data.server, data.usn))
             elif data.sub_type == "ssdp:byebye":
-                self.fire(UPnPDeviceByeBye(data.usn), "upnp")
+                self.fire(UPnPDeviceByeBye(data.usn))
         elif istartswith(lines[0], "HTTP/1.1 200 OK"):
             data = parse_lines(lines[1:])
             self.fire(Log(INFO, "Received M-SEARCH reply from " \
                           + data.location))
             self.fire(UPnPDeviceAlive\
                       (data.location, data.notification_type, 
-                       data.max_age, data.server, data.usn), "upnp")
+                       data.max_age, data.server, data.usn))
