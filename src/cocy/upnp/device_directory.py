@@ -142,3 +142,7 @@ class UPnPRootDevice(BaseComponent):
     def icons(self):
         return copy(self._icons)
     
+    @property
+    def valid_until(self):
+        return self._expiry_timer._eTime
+        

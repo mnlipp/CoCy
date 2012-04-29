@@ -13,7 +13,12 @@
   <p><img style="float: left; width: 32px; height: 32px; margin-right: 16px;" src="{== portlet.best_icon_url(device, 32, resource_url("default-device.png")) ==}">
      <div style="display: inline-block;">
        <div style="font-weight: bold; font-size: 125%; margin-bottom: 4px;">{= device.friendly_name =}</div>
-       {= _("Host") =}: {= portlet.host_name(device) =}<br/>
+       {= _("Root device") =}: <a target="_new" href="{== device.location ==}">{= device.location =}</a><br/>
+       {= _("Valid until") =}:
+       <script type="text/javascript">
+       var myDate = new Date({== int(device.valid_until * 1000) ==});
+       document.write(myDate.toString('TTTT'))
+       </script><br/>
      </div></p>
   <?py #endfor ?>
 </div>
