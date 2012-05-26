@@ -24,10 +24,10 @@ from cocy.upnp.ssdp import SSDPTranceiver, UPnPSearchRequest, UPnPDeviceByeBye
 from circuits.core.utils import findroot, flatten
 from cocy.upnp import UPNP_ROOTDEVICE, SSDP_DEVICE_SCHEMA
 from circuits_bricks.web import Client
+from circuits_bricks.core.timers import Timer
 from circuits.web.client import Request
 import httplib
 from xml.etree.ElementTree import XML
-from circuits.core.timers import Timer
 from urlparse import urljoin
 from copy import copy
 

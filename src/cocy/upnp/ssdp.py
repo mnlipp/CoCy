@@ -26,7 +26,7 @@ from circuits.io.events import Write
 import platform
 from socket import gethostname, gethostbyname
 import time
-from circuits.core.timers import Timer
+from circuits_bricks.core.timers import Timer
 from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS, UPNP_ROOTDEVICE
 import datetime
 from circuits_bricks.misc import ComponentQuery
