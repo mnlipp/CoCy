@@ -16,11 +16,12 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 #
+# Adapted to standard etree implementation (mnl at mnl.de)
 
 import logging
 logger = logging.getLogger(__name__)
 
-from lxml import etree
+from xml import etree
 
 from base64 import b64encode
 from urllib import unquote
@@ -77,10 +78,10 @@ def from_soap(xml_string, http_charset):
     Parses the xml string into the header and payload
     '''
     try:
-        root, xmlids = etree.XMLID(xml_string.decode(http_charset))
+        root, xmlids = etree.ElementTree.XMLID(xml_string.decode(http_charset))
     except ValueError,e:
         logger.debug('%s -- falling back to str decoding.' % (e))
-        root, xmlids = etree.XMLID(xml_string)
+        root, xmlids = etree.ElementTree.XMLID(xml_string)
 
     if xmlids:
         resolve_hrefs(root, xmlids)
@@ -88,8 +89,8 @@ def from_soap(xml_string, http_charset):
     if root.tag != '{%s}Envelope' % soaplib.ns_soap_env:
         raise Fault('Client.SoapError', 'No {%s}Envelope element was found!' % soaplib.ns_soap_env)
 
-    header_envelope = root.xpath('e:Header', namespaces={'e': soaplib.ns_soap_env})
-    body_envelope = root.xpath('e:Body', namespaces={'e': soaplib.ns_soap_env})
+    header_envelope = root.findall('{%s}Header' % soaplib.ns_soap_env)
+    body_envelope = root.findall('{%s}Body' % soaplib.ns_soap_env)
 
     if len(header_envelope) == 0 and len(body_envelope) == 0:
         raise Fault('Client.SoapError', 'Soap envelope is empty!' % soaplib.ns_soap_env)
@@ -162,7 +163,7 @@ def join_attachment(href_id, envelope, payload, prefix=True):
         return numreplaces
 
     # grab the XML element of the message in the SOAP body
-    soaptree = etree.fromstring(envelope)
+    soaptree = etree.ElementTree.fromstring(envelope)
     soapbody = soaptree.find("{%s}Body" % soaplib.ns_soap_env)
 
     message = None
@@ -192,7 +193,7 @@ def join_attachment(href_id, envelope, payload, prefix=True):
                     param.text = payload
                     numreplaces += 1
 
-    return (etree.tostring(soaptree), numreplaces)
+    return (etree.ElementTree.tostring(soaptree), numreplaces)
 
 def collapse_swa(content_type, envelope):
     '''
@@ -289,7 +290,7 @@ def apply_mtom(headers, envelope, params, paramvals):
     '''
 
     # grab the XML element of the message in the SOAP body
-    soaptree = etree.fromstring(envelope)
+    soaptree = etree.ElementTree.fromstring(envelope)
     soapbody = soaptree.find("{%s}Body" % soaplib.ns_soap_env)
 
     message = None
@@ -350,7 +351,7 @@ def apply_mtom(headers, envelope, params, paramvals):
             param = message[i]
             param.text = ""
 
-            incl = etree.SubElement(param, "{%s}Include" % soaplib.ns_xop)
+            incl = etree.ElementTree.SubElement(param, "{%s}Include" % soaplib.ns_xop)
             incl.attrib["href"] = "cid:%s" % id
 
             if paramvals[i].fileName and not paramvals[i].data:
@@ -373,7 +374,7 @@ def apply_mtom(headers, envelope, params, paramvals):
             mtompkg.attach(attachment)
 
     # Update SOAP envelope.
-    rootpkg.set_payload(etree.tostring(soaptree))
+    rootpkg.set_payload(etree.ElementTree.tostring(soaptree))
 
     # extract body string from MIMEMultipart message
     bound = '--%s' % (mtompkg.get_boundary(), )

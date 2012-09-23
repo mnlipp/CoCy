@@ -22,11 +22,11 @@ import urllib
 import soaplib
 import urllib
 
-from lxml import etree
+from xml import etree
 
 def create_relates_to_header(relatesTo, attrs={}):
     '''Creates a 'relatesTo' header for async callbacks'''
-    relatesToElement = etree.Element(
+    relatesToElement = etree.ElementTree.Element(
         '{%s}RelatesTo' % soaplib.ns_wsa)
     for k, v in attrs.items():
         relatesToElement.set(k, v)
@@ -37,11 +37,11 @@ def create_relates_to_header(relatesTo, attrs={}):
 def create_callback_info_headers(message_id, reply_to):
     '''Creates MessageId and ReplyTo headers for initiating an
     async function'''
-    message_id = etree.Element('{%s}MessageID' % soaplib.ns_wsa)
+    message_id = etree.ElementTree.Element('{%s}MessageID' % soaplib.ns_wsa)
     message_id.text = message_id
 
-    reply_to = etree.Element('{%s}ReplyTo' % soaplib.ns_wsa)
-    address = etree.SubElement(reply_to, '{%s}Address' % soaplib.ns_wsa)
+    reply_to = etree.ElementTree.Element('{%s}ReplyTo' % soaplib.ns_wsa)
+    address = etree.ElementTree.SubElement(reply_to, '{%s}Address' % soaplib.ns_wsa)
     address.text = reply_to
 
     return message_id, reply_to

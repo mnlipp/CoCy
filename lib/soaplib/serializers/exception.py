@@ -16,9 +16,10 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 #
+# Adapted to standard etree implementation (mnl at mnl.de)
 
 import soaplib
-from lxml import etree
+from xml import etree
 from soaplib.serializers import Base
 
 _ns_xsi = soaplib.ns_xsi
@@ -36,11 +37,11 @@ class Fault(Exception, Base):
     def to_xml(cls, value, tns, parent_elt, name=None):
         if name is None:
             name = cls.get_type_name()
-        element = etree.SubElement(parent_elt, "{%s}%s" % (soaplib.ns_soap_env,name))
+        element = etree.ElementTree.SubElement(parent_elt, "{%s}%s" % (soaplib.ns_soap_env,name))
 
-        etree.SubElement(element, 'faultcode').text = value.faultcode
-        etree.SubElement(element, 'faultstring').text = value.faultstring
-        etree.SubElement(element, 'detail').text = value.detail
+        etree.ElementTree.SubElement(element, 'faultcode').text = value.faultcode
+        etree.ElementTree.SubElement(element, 'faultstring').text = value.faultstring
+        etree.ElementTree.SubElement(element, 'detail').text = value.detail
 
     @classmethod
     def from_xml(cls, element):
@@ -49,7 +50,7 @@ class Fault(Exception, Base):
         detail_element = element.find('detail')
         if detail_element is not None:
             if len(detail_element.getchildren()):
-                detail = etree.tostring(detail_element)
+                detail = etree.ElementTree.tostring(detail_element)
             else:
                 detail = element.find('detail').text
         else:
@@ -58,21 +59,21 @@ class Fault(Exception, Base):
 
     @classmethod
     def add_to_schema(cls, schema_dict):
-        complex_type = etree.Element('complexType')
+        complex_type = etree.ElementTree.Element('complexType')
         complex_type.set('name', cls.get_type_name())
-        sequenceNode = etree.SubElement(complex_type, 'sequence')
+        sequenceNode = etree.ElementTree.SubElement(complex_type, 'sequence')
 
-        element = etree.SubElement(sequenceNode, 'element')
+        element = etree.ElementTree.SubElement(sequenceNode, 'element')
         element.set('name', 'detail')
         element.set('{%s}type' % _ns_xsi, 'xs:string')
 
-        element = etree.SubElement(sequenceNode, 'element')
+        element = etree.ElementTree.SubElement(sequenceNode, 'element')
         element.set('name', 'message')
         element.set('{%s}type' % _ns_xsi, 'xs:string')
 
         schema_dict.add_complex_type(cls, complex_type)
 
-        top_level_element = etree.Element('element')
+        top_level_element = etree.ElementTree.Element('element')
         top_level_element.set('name', 'ExceptionFaultType')
         top_level_element.set('{%s}type' % _ns_xsi, cls.get_type_name_ns())
 

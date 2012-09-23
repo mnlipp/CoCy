@@ -16,6 +16,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 #
+# Adapted to standard etree implementation (mnl at mnl.de)
 
 import base64
 import cStringIO
@@ -23,7 +24,7 @@ import cStringIO
 from soaplib.serializers.base import Base
 from soaplib.serializers import nillable_value, nillable_element
 
-from lxml import etree
+from xml import etree
 
 class Attachment(Base):
     __type_name__ = 'base64Binary'
@@ -75,7 +76,7 @@ class Attachment(Base):
 
         assert isinstance(value, cls)
 
-        element = etree.SubElement(parent_elt, '{%s}%s' % (tns,name))
+        element = etree.ElementTree.SubElement(parent_elt, '{%s}%s' % (tns,name))
         if value.data:
             # the data has already been loaded, just encode
             # and return the element

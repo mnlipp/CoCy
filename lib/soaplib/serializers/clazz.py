@@ -16,8 +16,9 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 #
+# Adapted to standard etree implementation (mnl at mnl.de)
 
-from lxml import etree
+from xml import etree
 
 import soaplib
 
@@ -174,7 +175,7 @@ class ClassSerializerBase(NonExtendingClass, Base):
         if name is None:
             name = cls.get_type_name()
 
-        element = etree.SubElement(parent_elt, "{%s}%s" % (tns, name))
+        element = etree.ElementTree.SubElement(parent_elt, "{%s}%s" % (tns, name))
 
         inst = cls.get_serialization_instance(value)
 
@@ -186,7 +187,7 @@ class ClassSerializerBase(NonExtendingClass, Base):
         inst = cls.get_deserialization_instance()
 
         for c in element:
-            if isinstance(c, etree._Comment):
+            if isinstance(c, etree.ElementTree.Comment):
                 continue
 
             key = c.tag.split('}')[-1]
@@ -240,28 +241,28 @@ class ClassSerializerBase(NonExtendingClass, Base):
             if not (getattr(cls, '__extends__', None) is None):
                 cls.__extends__.add_to_schema(schema_entries)
 
-            complex_type = etree.Element("{%s}complexType" % soaplib.ns_xsd)
+            complex_type = etree.ElementTree.Element("{%s}complexType" % soaplib.ns_xsd)
             complex_type.set('name',cls.get_type_name())
 
             sequence_parent = complex_type
             if not (getattr(cls, '__extends__', None) is None):
                 cls.__extends__.add_to_schema(schema_entries)
 
-                complex_content = etree.SubElement(complex_type,
+                complex_content = etree.ElementTree.SubElement(complex_type,
                                           "{%s}complexContent" % soaplib.ns_xsd)
-                extension = etree.SubElement(complex_content, "{%s}extension"
+                extension = etree.ElementTree.SubElement(complex_content, "{%s}extension"
                                                                % soaplib.ns_xsd)
                 extension.set('base', cls.__extends__.get_type_name_ns())
                 sequence_parent = extension
 
-            sequence = etree.SubElement(sequence_parent, '{%s}sequence' %
+            sequence = etree.ElementTree.SubElement(sequence_parent, '{%s}sequence' %
                                                                 soaplib.ns_xsd)
 
             for k, v in cls._type_info.items():
                 if v != cls:
                     v.add_to_schema(schema_entries)
 
-                member = etree.SubElement(sequence, '{%s}element' %
+                member = etree.ElementTree.SubElement(sequence, '{%s}element' %
                                                                 soaplib.ns_xsd)
                 member.set('name', k)
                 member.set('type', v.get_type_name_ns())
@@ -278,7 +279,7 @@ class ClassSerializerBase(NonExtendingClass, Base):
             schema_entries.add_complex_type(cls, complex_type)
 
             # simple node
-            element = etree.Element('{%s}element' % soaplib.ns_xsd)
+            element = etree.ElementTree.Element('{%s}element' % soaplib.ns_xsd)
             element.set('name',cls.get_type_name())
             element.set('type',cls.get_type_name_ns())
 

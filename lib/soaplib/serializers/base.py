@@ -16,10 +16,11 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 #
+# Adapted to standard etree implementation (mnl at mnl.de)
 
 import soaplib
 
-from lxml import etree
+from xml import etree
 
 def nillable_value(func):
     def wrapper(cls, value, tns, parent_elt, *args, **kwargs):
@@ -41,7 +42,7 @@ def string_to_xml(cls, value, tns, parent_elt, name):
     assert isinstance(value, str) or isinstance(value, unicode), "'value' must " \
                     "be string or unicode. it is instead '%s'" % repr(value)
 
-    element = etree.SubElement(parent_elt, "{%s}%s" % (tns,name))
+    element = etree.ElementTree.SubElement(parent_elt, "{%s}%s" % (tns,name))
 
     element.set('{%s}type' % soaplib.ns_xsi, cls.get_type_name_ns())
     element.text = value
@@ -140,7 +141,7 @@ class Base(object):
 class Null(Base):
     @classmethod
     def to_xml(cls, value, tns, parent_elt, name='retval'):
-        element = etree.SubElement(parent_elt, "{%s}%s" % (tns,name))
+        element = etree.ElementTree.SubElement(parent_elt, "{%s}%s" % (tns,name))
         element.set('{%s}nil' % soaplib.ns_xsi, 'true')
 
     @classmethod
@@ -177,16 +178,16 @@ class SimpleType(Base):
 
     @classmethod
     def get_restriction_tag(cls, schema_entries):
-        simple_type = etree.Element('{%s}simpleType' % soaplib.ns_xsd)
+        simple_type = etree.ElementTree.Element('{%s}simpleType' % soaplib.ns_xsd)
         simple_type.set('name', cls.get_type_name())
         schema_entries.add_simple_type(cls, simple_type)
 
-        restriction = etree.SubElement(simple_type,
+        restriction = etree.ElementTree.SubElement(simple_type,
                                             '{%s}restriction' % soaplib.ns_xsd)
         restriction.set('base', cls.__base_type__.get_type_name_ns())
 
         for v in cls.Attributes.values:
-            enumeration = etree.SubElement(restriction,
+            enumeration = etree.ElementTree.SubElement(restriction,
                                             '{%s}enumeration' % soaplib.ns_xsd)
             enumeration.set('value', str(v))
 
