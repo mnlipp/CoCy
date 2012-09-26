@@ -22,7 +22,6 @@ from util.python26fix import install_python26_fix
 install_python26_fix()
 
 from cocy.portlets.portlets_factory import PortletsFactory
-from cocy.portlets.device_directory import UPnPDirectoryPortlet
 from circuits_minpor import Portal
 from cocy.upnp.device_directory import UPnPDeviceDirectory
 from circuits.core.debugger import Debugger
@@ -59,17 +58,17 @@ if __name__ == '__main__':
     application = Application("CoCy", CONFIG)
     Debugger().register(application)
     ErrorHandler().register(application)
+    
     # Build a portal as user interface
     port = int(application.config.get("ui", "port", 0))
     portal_server = BaseServer(("", port), channel="ui").register(application)
     Portal(portal_server, title="CoCy").register(application)
     PortletsFactory().register(application)
-    
+    dev_dir = UPnPDeviceDirectory().register(application)
+
+    # The light server    
     upnp_dev_server \
         = UPnPDeviceServer(application.app_dir).register(application)
-    dev_dir = UPnPDeviceDirectory().register(application)
-    # SOAP().register(application)
-    
     BinaryLight().register(application)
     
     from circuits.tools import graph

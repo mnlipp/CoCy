@@ -125,6 +125,10 @@ class UPnPDeviceServer(BaseComponent):
         self.fireEvent(event)
         return True
 
+    @property
+    def providers(self):
+        return [device.provider for device in self._devices]
+
 class DummyRoot(BaseController):
     
     channel = ScopedChannel("upnp-web", "/")

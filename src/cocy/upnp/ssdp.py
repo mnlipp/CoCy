@@ -32,8 +32,6 @@ import datetime
 from circuits_bricks.misc import ComponentQuery
 from circuits.core.events import Event
 from circuits.web.controllers import Controller
-from logging import INFO
-from circuits_bricks.app.logger import Log
 
 class SSDPTranceiver(BaseComponent):
     '''The SSDP protocol server component
@@ -164,9 +162,9 @@ class SSDPSender(BaseComponent):
             + str(upnp_device.web_server_port) + "/" + upnp_device.uuid \
             + "/description.xml"
         
-    def _send_device_messages(self, upnp_device, type, 
+    def _send_device_messages(self, upnp_device, msg_type, 
                               to=(SSDP_ADDR, SSDP_PORT)):
-        template = "notify-%s" % type
+        template = "notify-%s" % msg_type
         # There is an extra announcement for root devices
         if upnp_device.root_device:
             self._send_root_message(upnp_device, template, to)
@@ -196,17 +194,17 @@ class SSDPSender(BaseComponent):
             + "::" + self._message_env['NT']
         self._send_template(template, self._message_env, to)
 
-    def _send_service_message(self, upnp_device, service, type, \
+    def _send_service_message(self, upnp_device, service, msg_type, \
                               to=(SSDP_ADDR, SSDP_PORT)):
-        template = "notify-%s" % type
+        template = "notify-%s" % msg_type
         self._message_env['NT'] = SSDP_SCHEMAS + ":service:" \
             + service.type_ver
         self._message_env['USN'] = 'uuid:' + upnp_device.uuid \
             + "::" + self._message_env['NT']
         self._send_template(template, self._message_env, to)
         
-    def _send_template(self, templateName, data, to=(SSDP_ADDR, SSDP_PORT)):
-        template = self._get_template(templateName)
+    def _send_template(self, template_name, data, to=(SSDP_ADDR, SSDP_PORT)):
+        template = self._get_template(template_name)
         message = template % data
         headers = ""
         for line in message.splitlines():
@@ -217,8 +215,8 @@ class SSDPSender(BaseComponent):
     def _get_template(self, name):
         if self._template_cache.has_key(name):
             return self._template_cache[name]
-        file = open(os.path.join(self._template_dir, name))
-        template = file.read()
+        template_file = open(os.path.join(self._template_dir, name))
+        template = template_file.read()
         self._template_cache[name] = template
         return template
 
@@ -286,6 +284,8 @@ class SSDPReceiver(BaseComponent):
             return line[0:len(prefix)].upper() == prefix
 
         def parse_lines(lines):
+            ''' Helper function that parses the information and puts it in an
+                anonymous type.'''
             res = type("", (), {})()
             for line in lines:
                 if istartswith(line, "CACHE-CONTROL:"):
@@ -310,6 +310,8 @@ class SSDPReceiver(BaseComponent):
         
         lines = data.splitlines()
         if istartswith(lines[0], "M-SEARCH "):
+            # This is a search. It's up to us to repond if we have
+            # matching devices
             search_target = None
             for line in lines[1:len(lines)-1]:
                 if not line.startswith("ST:"):
@@ -322,6 +324,8 @@ class SSDPReceiver(BaseComponent):
                 self.fire(UPnPDeviceQuery(f, address, search_target), "upnp")                        
                 return
         elif istartswith(lines[0], "NOTIFY "):
+            # A status change (or confirmation notification. Translate into
+            # an event to inform however is interested in this.
             data = parse_lines(lines[1:])
             if data.sub_type == "ssdp:alive":
                 self.fire(UPnPDeviceAlive\
@@ -330,9 +334,10 @@ class SSDPReceiver(BaseComponent):
             elif data.sub_type == "ssdp:byebye":
                 self.fire(UPnPDeviceByeBye(data.usn))
         elif istartswith(lines[0], "HTTP/1.1 200 OK"):
+            # A response to our own M-SEARCH. This is handled like a 
+            # status change/confirmation (can only be an alive notification,
+            # of course).
             data = parse_lines(lines[1:])
-            self.fire(Log(INFO, "Received M-SEARCH reply from " \
-                          + data.location))
             self.fire(UPnPDeviceAlive\
                       (data.location, data.notification_type, 
                        data.max_age, data.server, data.usn))

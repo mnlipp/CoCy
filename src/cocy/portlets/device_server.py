@@ -33,13 +33,13 @@ class UPnPDeviceServerPortlet(TemplatePortlet):
 
     def description(self, locales=[]):
         return Portlet.Description\
-            (self._handle, "Published UPnP Devices")
+            (self._handle, self.translation(locales) \
+             .ugettext("Published UPnP Devices"))
 
     def do_render(self, mime_type, mode, window_state, locales, url_generator, 
-                   key_language="en", context_exts = {}, globs_exts = {},
-                   **kwargs):
+                  context_exts = {}, globs_exts = {}, **kwargs):
         return super(UPnPDeviceServerPortlet, self)\
             .do_render(mime_type, mode, window_state, locales, url_generator,
-                       key_language, context_exts =
+                       context_exts =
                        { "device_server": self._device_server })
 

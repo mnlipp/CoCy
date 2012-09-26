@@ -54,12 +54,36 @@ class Manifest(object):
     """
     def __init__(self, unique_id, display_name, full_name = None,
                  manufacturer=None, model_number=None, description=None):
-        self.unique_id = unique_id
-        self.display_name = display_name
-        self.full_name = full_name
-        self.manufacturer = manufacturer
-        self.model_number = model_number
-        self.description = description
+        self._unique_id = unique_id
+        self._display_name = display_name
+        self._full_name = full_name
+        self._manufacturer = manufacturer
+        self._model_number = model_number
+        self._description = description
+
+    @property
+    def unique_id(self):
+        return self._unique_id
+
+    @property
+    def display_name(self):
+        return self._display_name
+
+    @property
+    def full_name(self):
+        return self._full_name
+
+    @property
+    def manufacturer(self):
+        return self._manufacturer
+
+    @property
+    def model_number(self):
+        return self._model_number
+
+    @property
+    def description(self):
+        return self._description
 
     
 class Provider(BaseComponent):
@@ -90,6 +114,7 @@ class Provider(BaseComponent):
         super(Provider, self).__init__(**kwargs)
         self._provider_manifest = provider_manifest
     
+    @property
     def provider_manifest(self):
         """
         Return the provider's manifest.

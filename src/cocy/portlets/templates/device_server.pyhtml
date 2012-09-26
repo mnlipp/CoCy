@@ -1,3 +1,20 @@
 <?py #@ARGS portlet, mode, window_state, theme, locales, device_server ?>
 <?py from circuits_minpor import Portlet ?>
-<div>Local port: {= device_server.web_server.port =}</div>
+<?py if window_state != Portlet.WindowState.Solo: ?>
+<div>{= _("Serving on local port") =} {= device_server.web_server.port =}
+  <ul>
+  <?py for provider in sorted(device_server.providers, lambda a, b: cmp(provider_manifest.display_name, b.provider_manifest.display_name)): ?>
+    <li>{= provider.provider_manifest.display_name =}</li>
+  <?py #endfor ?>
+  </ul>
+</div>
+<?py else: ?>
+<div>{= _("Served on local port") =} {= device_server.web_server.port =}
+  <ul>
+  <?py for provider in sorted(device_server.providers, lambda a, b: cmp(provider_manifest.display_name, b.provider_manifest.display_name)): ?>
+    <li>{= provider.provider_manifest.unique_id =}<br/>
+      {= provider.provider_manifest.display_name =}</li>
+  <?py #endfor ?>
+  </ul>
+</div>
+<?py #endif ?>

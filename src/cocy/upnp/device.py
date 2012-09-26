@@ -78,7 +78,7 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
         # The web server port is included in device descriptions
         self.web_server_port = port
         # Get instance information about the provider
-        manifest = provider.provider_manifest()
+        manifest = provider.provider_manifest
         if manifest.unique_id and uuid_map.has_key(manifest.unique_id):
             self._uuid = uuid_map[manifest.unique_id]
         else:
