@@ -130,10 +130,20 @@ class Provider(BaseComponent):
         this provider.
         """
         return self
-        
+
+
 class BinarySwitch:
     """
     This class represents anything that has an on and
     an off state that is to be controlled remotely.
     """
     __metaclass__ = ABCMeta
+    _state = False
+
+    def setState(self, state):
+        self._state = state
+        pass
+
+    def getState(self):
+        return self._state
+    

@@ -21,12 +21,14 @@
 from circuits.web.controllers import BaseController, expose
 import os
 from circuits_bricks.web import ScopedChannel
+from xml.etree import ElementTree
+from cocy.upnp import COCY_SERVICE_EXT, UPNP_SERVICE_SCHEMA
 
 
 class UPnPService(BaseController):
     """
-    A ``UPnPService`` component provides HTTP access to a UPnP service
-    description.
+    A ``UPnPService`` component hold information about a service
+    and provides HTTP access to the UPnP service description.
     
     As specified in the UPnP architecture, services are
     identified by a type and a version. The service descriptions are made
@@ -58,7 +60,15 @@ class UPnPService(BaseController):
         super(UPnPService, self).__init__();
         file = open(os.path.join(self._template_dir, 
                                  "%s_%s.xml" % (self._type, self._ver)))
-        self._description = file.read()
+        sd = ElementTree.parse(file).getroot()
+        for el in sd.getiterator():
+            if el.tag == "{%s}scpd" % UPNP_SERVICE_SCHEMA:
+                self._device_class \
+                    = el.attrib.get("{%s}deviceClass" % COCY_SERVICE_EXT)
+            for key in el.attrib.keys():
+                if key.startswith("{%s}" % COCY_SERVICE_EXT):
+                    del el.attrib[key]
+        self._description = ElementTree.tostring(sd)
 
     @property
     def type_ver(self):

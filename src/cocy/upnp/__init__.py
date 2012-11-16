@@ -21,8 +21,10 @@ SSDP_ADDR = '239.255.255.250'
 
 SSDP_SCHEMAS = "urn:schemas-upnp-org"
 SSDP_DEVICE_SCHEMA = "urn:schemas-upnp-org:device-1-0"
+UPNP_SERVICE_SCHEMA = "urn:schemas-upnp-org:service-1-0"
 UPNP_ROOTDEVICE = "upnp:rootdevice"
 UPNP_SERVICE_ID_PREFIX = "urn:upnp-org:serviceId:"
+COCY_SERVICE_EXT = "urn:cocy-service-ext"
 
 from .device_server import UPnPDeviceServer
 from .device import UPnPDeviceAdapter

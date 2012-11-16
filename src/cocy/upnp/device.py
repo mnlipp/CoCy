@@ -27,6 +27,7 @@ from circuits_bricks.misc import Queryable
 from util.misc import parseSoapRequest
 from circuits_bricks.web import ScopedChannel
 from circuits.core.components import BaseComponent
+import string
 
 class UPnPDeviceAdapter(BaseComponent, Queryable):
     """
@@ -35,31 +36,21 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
 
     channel = "upnp"
     
-    class Properties(object):
+    class DeviceProperties(object):
         """
         This class simply serves as a container for common information about 
         UPnP device types.
         """
         
         def __init__(self, dev_type, ver, spec_ver_major, spec_ver_minor,
-                     services):
+                     services, desc_gen):
             object.__init__(self)
             self.type = dev_type
             self.ver = ver
             self.spec_ver_major = spec_ver_major
             self.spec_ver_minor = spec_ver_minor
             self.services = services
-
-
-    _mapping = {
-        # Provider: Properties("Basic", 1, 1, 0, []),
-        BinarySwitch: Properties("BinaryLight", 0.9, 1, 0,
-            [("SwitchPower:1", UPNP_SERVICE_ID_PREFIX + "SwitchPower:1")])
-    }
-    """
-    This dictionary maps the defined :class:`cocy.providers.Provider`
-    classes to UPnP device properties.
-    """
+            self.desc_gen = desc_gen
 
     def __init__(self, provider, config_id, uuid_map, service_map, port):
         super(UPnPDeviceAdapter, self).__init__();
@@ -101,11 +92,16 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
         for (service_type, service_id) in self._props.services:
             if not service_map.has_key(service_type):
                 continue
-            service_insts.append((service_map[service_type], service_id))
-            self._services.add(service_map[service_type])
+            service = service_map[service_type]
+            self._services.add(service)
+            service_insts.append((service, service_id))
+            # Create an adapter that links this class's service with the web
+            # component interface of circuits
+            UPnPServiceController \
+                (self._path, service, service_id).register(self)
 
         # Generate a device description for the device
-        desc = self._desc_funcs[self.type_ver](self, config_id, service_insts)
+        desc = self._props.desc_gen(self, config_id, service_insts)
         class Writer(object):
             result = ""
             def write(self, value):
@@ -115,10 +111,11 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
         ElementTree(desc).write(writer, encoding="utf-8")
         self.description = writer.result
 
-        # Create an adapter that makes links this class with the web
-        # component interface of circuits (uses different channel)
+        # Create an adapter that links this class with the web
+        # component interface of circuits
         UPnPDeviceController(ScopedChannel("upnp-web", self._path)) \
             .register(self)
+
 
     @property
     def provider(self):
@@ -170,15 +167,10 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
             serviceList = SubElement(device, 
                                      "{%s}serviceList" % SSDP_DEVICE_SCHEMA)
             for service in services:
-                self._addService(serviceList, service)
+                self._describeService(serviceList, service)
         return root
         
-    _desc_funcs = {
-        "BinaryLight:0.9": _common_device_desc,
-        "Basic:1": _common_device_desc
-    }
-
-    def _addService(self, service_list, service_tuple):
+    def _describeService(self, service_list, service_tuple):
         (service_type, service_id) = service_tuple
         service = SubElement(service_list, "{%s}service" % SSDP_DEVICE_SCHEMA)
         SubElement(service, "{%s}serviceType" % SSDP_DEVICE_SCHEMA).text \
@@ -188,21 +180,45 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
         SubElement(service, "{%s}SCPDURL" % SSDP_DEVICE_SCHEMA).text \
             = service_type.description_url
         SubElement(service, "{%s}controlURL" % SSDP_DEVICE_SCHEMA).text \
-            = self._path + "/control"
+            = self._path + "/" + service_id + "/control"
         SubElement(service, "{%s}eventSubURL" % SSDP_DEVICE_SCHEMA).text \
-            = self._path + "/sub"
+            = self._path + "/" + service_id + "/sub"
 
+    _mapping = {
+        # Provider: DeviceProperties("Basic", 1, 1, 0, []),
+        BinarySwitch: DeviceProperties("BinaryLight", 0.9, 1, 0,
+            [("SwitchPower:1", UPNP_SERVICE_ID_PREFIX + "SwitchPower:1")],
+            _common_device_desc)
+    }
+    """
+    This dictionary maps the defined :class:`cocy.providers.Provider`
+    classes to UPnP device properties.
+    """
 
 class UPnPDeviceController(Controller):
 
     def __init__(self, channel):
         super(UPnPDeviceController, self).__init__(channel=channel);
 
+    @expose("description.xml")
+    def description(self, *args):
+        self.response.headers["Content-Type"] = "text/xml"
+        return self.parent.description
+
+
+class UPnPServiceController(Controller):
+
+    def __init__(self, device_path, service, service_id):
+        super(UPnPServiceController, self).__init__ \
+            (channel=ScopedChannel("upnp-web", device_path + "/" + service_id));
+        self._service = service
+
     def control(self, *args):
         payload = parseSoapRequest(self.request)[2]
-        action = payload.tag
+        action = string.split(payload.tag, "}", 1)[1]
+        action_args = dict()
         for node in payload:
-            print node
+            action_args[node.tag] = node.text
 
         self.response.headers["Content-Type"] = "text/xml"
         return "control"
@@ -210,9 +226,3 @@ class UPnPDeviceController(Controller):
     def sub(self, *args):
         self.response.headers["Content-Type"] = "text/xml"
         return "sub"
-    
-    @expose("description.xml")
-    def description(self, *args):
-        self.response.headers["Content-Type"] = "text/xml"
-        return self.parent.description
-
