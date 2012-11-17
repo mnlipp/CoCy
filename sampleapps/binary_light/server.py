@@ -21,6 +21,7 @@
 from util.python26fix import install_python26_fix
 install_python26_fix()
 
+from binary_light.misc import BinaryLight
 from cocy.portlets.portlets_factory import PortletsFactory
 from circuits_minpor import Portal
 from cocy.upnp.device_directory import UPnPDeviceDirectory
@@ -29,7 +30,6 @@ from circuits.core.components import Component
 import sys
 from circuits.web.servers import BaseServer
 from cocy.upnp import UPnPDeviceServer
-from cocy.samples.binary_light.misc import BinaryLight
 import os
 from circuits_bricks.app import Application
 

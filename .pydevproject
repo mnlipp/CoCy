@@ -7,6 +7,7 @@
 <path>/CoCy/unittests</path>
 <path>/CoCy/tests</path>
 <path>/CoCy/lib</path>
+<path>/CoCy/sampleapps</path>
 </pydev_pathproperty>
 <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
 <path>/home/mnl/devel/circuits-dev</path>
