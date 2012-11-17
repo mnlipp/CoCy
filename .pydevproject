@@ -3,11 +3,11 @@
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">python2.6</pydev_property>
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.6</pydev_property>
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
-<path>/CoCy/src</path>
 <path>/CoCy/unittests</path>
 <path>/CoCy/tests</path>
 <path>/CoCy/lib</path>
 <path>/CoCy/sampleapps</path>
+<path>/CoCy</path>
 </pydev_pathproperty>
 <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
 <path>/home/mnl/devel/circuits-dev</path>

@@ -1,0 +1,4 @@
+<?py #@ARGS portlet, mode, window_state, theme, locales, binary_light ?>
+<?py from circuits_minpor import Portlet ?>
+<div>{= _("Light is") =} {= _("on") if binary_light.state else _("off") =}
+</div>

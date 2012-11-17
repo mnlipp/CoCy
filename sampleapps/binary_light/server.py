@@ -21,6 +21,7 @@
 from util.python26fix import install_python26_fix
 install_python26_fix()
 
+from binary_light.portlet import BinaryLightPortlet
 from binary_light.misc import BinaryLight
 from cocy.portlets.portlets_factory import PortletsFactory
 from circuits_minpor import Portal
@@ -62,14 +63,15 @@ if __name__ == '__main__':
     # Build a portal as user interface
     port = int(application.config.get("ui", "port", 0))
     portal_server = BaseServer(("", port), channel="ui").register(application)
-    Portal(portal_server, title="CoCy").register(application)
+    portal = Portal(portal_server, title="CoCy").register(application)
     PortletsFactory().register(application)
     dev_dir = UPnPDeviceDirectory().register(application)
 
     # The light server    
     upnp_dev_server \
         = UPnPDeviceServer(application.app_dir).register(application)
-    BinaryLight().register(application)
+    binary_light = BinaryLight().register(application)
+    BinaryLightPortlet(binary_light).register(portal)
     
     from circuits.tools import graph
     print graph(application)
