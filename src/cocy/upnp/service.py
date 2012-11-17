@@ -61,13 +61,6 @@ class UPnPService(BaseController):
         file = open(os.path.join(self._template_dir, 
                                  "%s_%s.xml" % (self._type, self._ver)))
         sd = ElementTree.parse(file).getroot()
-        for el in sd.getiterator():
-            if el.tag == "{%s}scpd" % UPNP_SERVICE_SCHEMA:
-                self._device_class \
-                    = el.attrib.get("{%s}deviceClass" % COCY_SERVICE_EXT)
-            for key in el.attrib.keys():
-                if key.startswith("{%s}" % COCY_SERVICE_EXT):
-                    del el.attrib[key]
         self._description = ElementTree.tostring(sd)
 
     @property

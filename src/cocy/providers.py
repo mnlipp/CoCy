@@ -140,10 +140,11 @@ class BinarySwitch:
     __metaclass__ = ABCMeta
     _state = False
 
-    def setState(self, state):
-        self._state = state
-        pass
-
-    def getState(self):
+    @property
+    def state(self):
         return self._state
-    
+
+    @state.setter    
+    def state(self, state):
+        self._state = state
+

@@ -1,15 +1,14 @@
 <?xml version="1.0"?>
-<scpd xmlns="urn:schemas-upnp-org:service-1-0" xmlns:cse="urn:cocy-service-ext"
-    cse:deviceClass="cocy.providers.BinarySwitch">
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
 	<specVersion>
 		<major>1</major>
 		<minor>0</minor>
 	</specVersion>
 	<actionList>
-		<action cse:method="setState">
+		<action>
 			<name>SetTarget</name>
 			<argumentList>
-				<argument cse:converter="toBoolean">
+				<argument>
 					<name>newTargetValue</name>
 					<relatedStateVariable>Target</relatedStateVariable>
 					<direction>in</direction>

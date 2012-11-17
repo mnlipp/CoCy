@@ -24,10 +24,10 @@ from circuits.web.controllers import expose, Controller
 from cocy.providers import BinarySwitch
 from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_SERVICE_ID_PREFIX
 from circuits_bricks.misc import Queryable
-from util.misc import parseSoapRequest
+from util.misc import parseSoapRequest, buildSoapResponse, splitQTag
 from circuits_bricks.web import ScopedChannel
 from circuits.core.components import BaseComponent
-import string
+from cocy.upnp.adapters.home_automation import BinarySwitchPowerAdapter
 
 class UPnPDeviceAdapter(BaseComponent, Queryable):
     """
@@ -89,7 +89,7 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
         # Assemble the services provided for the provider
         self._services = set()
         service_insts = []
-        for (service_type, service_id) in self._props.services:
+        for (service_type, service_id, service_adapter) in self._props.services:
             if not service_map.has_key(service_type):
                 continue
             service = service_map[service_type]
@@ -98,7 +98,8 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
             # Create an adapter that links this class's service with the web
             # component interface of circuits
             UPnPServiceController \
-                (self._path, service, service_id).register(self)
+                (self, self._path, service, service_id, service_adapter) \
+                .register(self)
 
         # Generate a device description for the device
         desc = self._props.desc_gen(self, config_id, service_insts)
@@ -187,7 +188,8 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
     _mapping = {
         # Provider: DeviceProperties("Basic", 1, 1, 0, []),
         BinarySwitch: DeviceProperties("BinaryLight", 0.9, 1, 0,
-            [("SwitchPower:1", UPNP_SERVICE_ID_PREFIX + "SwitchPower:1")],
+            [("SwitchPower:1", UPNP_SERVICE_ID_PREFIX + "SwitchPower:1",
+              BinarySwitchPowerAdapter)],
             _common_device_desc)
     }
     """
@@ -208,20 +210,28 @@ class UPnPDeviceController(Controller):
 
 class UPnPServiceController(Controller):
 
-    def __init__(self, device_path, service, service_id):
+    def __init__ \
+        (self, parent, device_path, service, service_id, service_adapter):
         super(UPnPServiceController, self).__init__ \
             (channel=ScopedChannel("upnp-web", device_path + "/" + service_id));
         self._service = service
+        self._adapter = service_adapter(parent.provider)
 
     def control(self, *args):
         payload = parseSoapRequest(self.request)[2]
-        action = string.split(payload.tag, "}", 1)[1]
+        action_ns, action = splitQTag(payload.tag)
         action_args = dict()
         for node in payload:
             action_args[node.tag] = node.text
-
-        self.response.headers["Content-Type"] = "text/xml"
-        return "control"
+        method = getattr(self._adapter, action, None)
+        if method is None:
+            return
+        out_args = method(**action_args)
+        result = Element("{%s}%sResponse" % (action_ns, action))
+        for name, value in out_args:
+            arg = SubElement(result, name)
+            arg.text = value
+        return buildSoapResponse(self.response, result)
 
     def sub(self, *args):
         self.response.headers["Content-Type"] = "text/xml"

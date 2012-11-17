@@ -19,6 +19,13 @@
 .. codeauthor:: mnl
 """
 from soaplib.soap import from_soap
+from xml.etree.ElementTree import ElementTree, Element, SubElement
+import soaplib
+
+def splitQTag (tag):
+    tag_ns, tag_name = tag.split("}", 1)
+    tag_ns = tag_ns[1:]
+    return (tag_ns, tag_name)
 
 def parseSoapRequest(request):
     # Test if this is a SOAP request. SOAP 1.1 specifies special
@@ -43,3 +50,20 @@ def parseSoapRequest(request):
         soapAction = payload.tag
 
     return soapAction, soapheader, payload
+
+def buildSoapResponse(response, body):
+    # construct the soap response, and serialize it
+    envelope = Element('{%s}Envelope' % soaplib.ns_soap_env)
+    # body
+    soap_body = SubElement(envelope, '{%s}Body' % soaplib.ns_soap_env)
+    soap_body.append(body)
+
+    class Writer(object):
+        result = ""
+        def write(self, value):
+            self.result += value
+    writer = Writer()
+    response.headers["Content-Type"] = "text/xml; charset=utf-8"
+    writer.write("<?xml version='1.0' encoding='utf-8'?>\n")
+    ElementTree(envelope).write(writer, encoding="utf-8")
+    return writer.result
