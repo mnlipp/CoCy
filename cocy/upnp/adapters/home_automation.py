@@ -24,7 +24,8 @@ class BinarySwitchPowerAdapter(ServiceAdapter):
         super(BinarySwitchPowerAdapter, self).__init__(provider)
 
     def SetTarget(self, **kwargs):
-        self._provider.state = (kwargs["newTargetValue"] == "1")
+        self._provider.state \
+            = (kwargs["newTargetValue"] in ["1", "yes", "true"])
         return []
 
     def GetTarget(self, **kwargs):
