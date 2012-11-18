@@ -30,3 +30,6 @@ class BinarySwitchPowerAdapter(ServiceAdapter):
 
     def GetTarget(self, **kwargs):
         return [("RetTargetValue", "1" if self._provider.state else "0")]
+
+    def GetStatus(self, **kwargs):
+        return [("ResultStatus", "1" if self._provider.state else "0")]
