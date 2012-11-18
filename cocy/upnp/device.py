@@ -19,15 +19,18 @@
 .. codeauthor:: mnl
 """
 from uuid import uuid4
-from xml.etree.ElementTree import Element, SubElement, ElementTree
+from xml.etree.ElementTree import Element, SubElement, ElementTree, QName
 from circuits.web.controllers import expose, Controller
 from cocy.providers import BinarySwitch
-from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_SERVICE_ID_PREFIX
+from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_SERVICE_ID_PREFIX,\
+    UPNP_CONTROL_NS
 from circuits_bricks.misc import Queryable
 from util.misc import parseSoapRequest, buildSoapResponse, splitQTag
 from circuits_bricks.web import ScopedChannel
 from circuits.core.components import BaseComponent
 from cocy.upnp.adapters.home_automation import BinarySwitchPowerAdapter
+from circuits.web.errors import HTTPError
+import soaplib
 
 class UPnPDeviceAdapter(BaseComponent, Queryable):
     """
@@ -225,7 +228,7 @@ class UPnPServiceController(Controller):
             action_args[node.tag] = node.text
         method = getattr(self._adapter, action, None)
         if method is None:
-            return
+            return UPnPError(self.request, self.response, 401)
         out_args = method(**action_args)
         result = Element("{%s}%sResponse" % (action_ns, action))
         for name, value in out_args:
@@ -236,3 +239,37 @@ class UPnPServiceController(Controller):
     def sub(self, *args):
         self.response.headers["Content-Type"] = "text/xml"
         return "sub"
+
+
+class UPnPError(HTTPError):
+
+    _error_descs = { 401: "Invalid Action",
+                     402: "Invalid Args",
+                     501: "Action Failed",
+                     600: "Argument Value Invalid",
+                     601: "Argument Value Out of Range",
+                     602: "Optional Action Not Implemented",
+                     603: "Out of Memory",
+                     604: "Human Intervention Required",
+                     605: "String Argument Too Long"}
+    
+    def __init__(self, request, response, error_code, error_desc = None):
+        super(UPnPError, self).__init__(request, response, 500)
+        if error_desc is None:
+            error_desc = self._error_descs.get(error_code, "Unknown")
+        result = Element(QName(soaplib.ns_soap_env, "Fault"))
+        SubElement(result, QName(soaplib.ns_soap_env, "faultcode")).text \
+            = str(QName(soaplib.ns_soap_env, "Client"))
+        SubElement(result, QName(soaplib.ns_soap_env, "faultstring")).text \
+            = "UPnPError"
+        detail = SubElement(result, "detail")
+        upnp_error = SubElement(detail, QName(UPNP_CONTROL_NS, "UPnPError"))
+        SubElement(upnp_error, QName(UPNP_CONTROL_NS, "errorCode")).text \
+            = str(error_code)
+        SubElement(upnp_error, QName(UPNP_CONTROL_NS, "errorDescription")) \
+            .text = error_desc
+        self._fault = buildSoapResponse(self.response, result)
+    
+    def __str__(self):
+        return self._fault 
+       
