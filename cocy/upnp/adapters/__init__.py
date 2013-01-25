@@ -16,3 +16,14 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from cocy.upnp.adapters.adapter import UPnPDeviceAdapter
+from cocy.providers import BinarySwitch
+from cocy.upnp import UPNP_SERVICE_ID_PREFIX
+from cocy.upnp.adapters.home_automation import BinarySwitchPowerController
+
+UPnPDeviceAdapter.add_adapter \
+    (BinarySwitch, UPnPDeviceAdapter.DeviceProperties \
+     ("BinaryLight", 0.9, 1, 0,
+      [("SwitchPower:1", UPNP_SERVICE_ID_PREFIX + "SwitchPower:1",
+       BinarySwitchPowerController)],
+      "_common_device_desc"))

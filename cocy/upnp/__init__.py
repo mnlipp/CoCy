@@ -28,7 +28,7 @@ UPNP_CONTROL_NS = "urn:schemas-upnp-org:control-1-0"
 COCY_SERVICE_EXT = "urn:cocy-service-ext"
 
 from .device_server import UPnPDeviceServer
-from .device import UPnPDeviceAdapter
+from .adapters.adapter import UPnPDeviceAdapter
 from .ssdp import SSDPTranceiver
 
 __all__ = ["SSDP_PORT", "SSDP_ADDR", "SSDP_SCHEMAS",
