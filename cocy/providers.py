@@ -132,7 +132,7 @@ class Provider(BaseComponent):
         return self
 
 
-class BinarySwitch:
+class BinarySwitch(Provider):
     """
     This class represents anything that has an on and
     an off state that is to be controlled remotely.

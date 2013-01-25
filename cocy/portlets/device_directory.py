@@ -37,10 +37,10 @@ class UPnPDirectoryPortlet(TemplatePortlet):
                 .ugettext("Detected UPnP Devices"))
 
     def do_render(self, mime_type, mode, window_state, locales, url_generator, 
-                  context_exts = {}, globs_exts = {}, **kwargs):
+                  invocation_id, context_exts = {}, globs_exts = {}, **kwargs):
         return super(UPnPDirectoryPortlet, self)\
             .do_render(mime_type, mode, window_state, locales, url_generator,
-                       context_exts =
+                       invocation_id, context_exts =
                        { "device_directory": self._device_directory })
 
     def best_icon_url(self, device, height, default):

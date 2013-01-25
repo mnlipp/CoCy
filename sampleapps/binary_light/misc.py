@@ -18,9 +18,9 @@
 
 .. codeauthor:: mnl
 """
-from cocy.providers import BinarySwitch, Manifest, Provider
+from cocy.providers import BinarySwitch, Manifest
 
-class BinaryLight(Provider, BinarySwitch):
+class BinaryLight(BinarySwitch):
     '''
     classdocs
     '''
