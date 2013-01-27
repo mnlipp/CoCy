@@ -22,6 +22,8 @@ from circuits_minpor import Portlet
 from tenjin.helpers import *
 from circuits_minpor.portlet import TemplatePortlet
 import os
+from circuits.core.handlers import handler
+from circuits_minpor.portal import PortalUpdate
 
 class BinaryLightPortlet(TemplatePortlet):
 
@@ -29,6 +31,10 @@ class BinaryLightPortlet(TemplatePortlet):
         super(BinaryLightPortlet, self) \
             .__init__(os.path.dirname(__file__), "binary_light", weight=1)
         self._binary_light = binary_light
+        @handler("provider_updated", channel=binary_light)
+        def _on_provider_updated(self, provider, changed):
+            self._on_updated(provider, changed)
+        self.addHandler(_on_provider_updated)
 
     def description(self, locales=[]):
         return Portlet.Description\
@@ -42,3 +48,14 @@ class BinaryLightPortlet(TemplatePortlet):
                        invocation_id, context_exts =
                        { "binary_light": self._binary_light })
 
+    @handler("portlet_added")
+    def _on_portlet_added(self, portal, portlet):
+        self._portal_channel = portal.channel
+        @handler("portal_client_connect", channel=portal.channel)
+        def _on_client_connect(*args):
+            self._on_updated(None, None)
+        self.addHandler(_on_client_connect)
+
+    def _on_updated(self, provider, changed):
+        self.fire(PortalUpdate(self, "new_state", self._binary_light.state),
+                   self._portal_channel)

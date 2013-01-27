@@ -21,6 +21,7 @@
 from circuits.core.components import BaseComponent
 from abc import ABCMeta
 from circuits.core.handlers import handler
+from circuits.core.events import Event
 
 class Manifest(object):
     """
@@ -86,6 +87,10 @@ class Manifest(object):
         return self._description
 
     
+class ProviderUpdated(Event):
+    pass
+
+    
 class Provider(BaseComponent):
     """
     All components that want to be advertised in the network as providers of 
@@ -98,6 +103,8 @@ class Provider(BaseComponent):
       providers
     """    
     __metaclass__ = ABCMeta
+    _provider_attributes = []
+    _provider_state = dict()
     
     def __init__(self, provider_manifest, **kwargs):
         """
@@ -130,6 +137,18 @@ class Provider(BaseComponent):
         this provider.
         """
         return self
+    
+    def _updated(self):
+        changed = dict()
+        for attr in self._provider_attributes:
+            if not attr in self._provider_state:
+                changed[attr] = getattr(self, attr)
+                self._provider_state[attr] = getattr(self, attr)
+            elif self._provider_state[attr] != getattr(self, attr):
+                changed[attr] = getattr(self, attr)
+                self._provider_state[attr] = getattr(self, attr)
+        if len(changed) > 0:
+            self.fire(ProviderUpdated(self, changed))
 
 
 class BinarySwitch(Provider):
@@ -138,6 +157,7 @@ class BinarySwitch(Provider):
     an off state that is to be controlled remotely.
     """
     __metaclass__ = ABCMeta
+    _provider_attributes = ["_state"]
     _state = False
 
     @property
@@ -147,4 +167,5 @@ class BinarySwitch(Provider):
     @state.setter    
     def state(self, state):
         self._state = state
+        self._updated()
 
