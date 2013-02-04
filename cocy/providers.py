@@ -22,6 +22,8 @@ from circuits.core.components import BaseComponent
 from abc import ABCMeta
 from circuits.core.handlers import handler
 from circuits.core.events import Event
+import inspect
+from inspect import getmembers, ismethod
 
 class Manifest(object):
     """
@@ -103,8 +105,6 @@ class Provider(BaseComponent):
       providers
     """    
     __metaclass__ = ABCMeta
-    _provider_attributes = []
-    _provider_state = dict()
     
     def __init__(self, provider_manifest, **kwargs):
         """
@@ -120,6 +120,8 @@ class Provider(BaseComponent):
         """
         super(Provider, self).__init__(**kwargs)
         self._provider_manifest = provider_manifest
+        self._provider_state = dict()
+        self._provider_changed = dict()
     
     @property
     def provider_manifest(self):
@@ -138,18 +140,37 @@ class Provider(BaseComponent):
         """
         return self
     
-    def _updated(self):
-        changed = dict()
-        for attr in self._provider_attributes:
-            if not attr in self._provider_state:
-                changed[attr] = getattr(self, attr)
-                self._provider_state[attr] = getattr(self, attr)
-            elif self._provider_state[attr] != getattr(self, attr):
-                changed[attr] = getattr(self, attr)
-                self._provider_state[attr] = getattr(self, attr)
-        if len(changed) > 0:
-            self.fire(ProviderUpdated(self, changed))
+    def _publish_updates(self):
+        if len(self._provider_changed) > 0:
+            self.fire(ProviderUpdated(self, self._provider_changed))
+        self._provider_changed = dict()
 
+
+def evented(*args, **kwargs):
+
+    def do_f(f, self, new_value, auto_publish=False):
+        if not f.__name__ in self._provider_state \
+            or self._provider_state[f.__name__] != new_value:
+            self._provider_changed[f.__name__] = new_value
+        self._provider_state[f.__name__] = new_value
+        result = f(self, new_value)
+        if auto_publish:
+            self._publish_updates()
+        return result
+    
+    if len(args) == 0 or not hasattr(args[0], "__call__"):
+        # function to be wrapped isn't first parameter, re-wrap
+        def wrapper(f):
+            def decorator(self, new_value):
+                do_f(f, self, new_value, *args, **kwargs)
+            return decorator
+        return wrapper
+    else:
+        # function to be wrapped is first parameter
+        def decorator(self, new_value):
+            do_f(args[0], self, new_value, **kwargs)
+        return decorator
+        
 
 class BinarySwitch(Provider):
     """
@@ -157,15 +178,14 @@ class BinarySwitch(Provider):
     an off state that is to be controlled remotely.
     """
     __metaclass__ = ABCMeta
-    _provider_attributes = ["_state"]
     _state = False
 
     @property
     def state(self):
         return self._state
 
-    @state.setter    
+    @state.setter
+    @evented(auto_publish=True)
     def state(self, state):
         self._state = state
-        self._updated()
 

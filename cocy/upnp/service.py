@@ -40,6 +40,7 @@ class UPnPService(BaseController):
 
     channel = None
     _template_dir = os.path.join(os.path.dirname(__file__), "templates")
+    _service_dir = os.path.join(os.path.dirname(__file__), "services")
 
     def __init__(self, type, ver):
         """
@@ -58,7 +59,7 @@ class UPnPService(BaseController):
         # Now call super as only now the channel is known and this classes
         # handlers will be registered properly
         super(UPnPService, self).__init__();
-        file = open(os.path.join(self._template_dir, 
+        file = open(os.path.join(self._service_dir, 
                                  "%s_%s.xml" % (self._type, self._ver)))
         sd = ElementTree.parse(file).getroot()
         self._description = ElementTree.tostring(sd)

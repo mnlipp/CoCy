@@ -19,12 +19,19 @@
 from circuits.core.components import BaseComponent
 from circuits_bricks.misc.compquery import Queryable
 from uuid import uuid4
-from xml.etree.ElementTree import ElementTree, Element, SubElement
+from xml.etree.ElementTree import ElementTree, Element, SubElement, QName
 from circuits_bricks.web.dispatchers.dispatcher import ScopedChannel
-from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS
+from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_EVENT_NS
 from circuits.web.controllers import Controller, expose, BaseController
 from util.misc import parseSoapRequest, splitQTag, buildSoapResponse
 from cocy.upnp.device_server import UPnPError
+from email.utils import formatdate
+from circuits_bricks.core.timers import Timer
+from circuits.core.events import Event
+from circuits.core.handlers import handler
+from inspect import getmembers, ismethod
+from StringIO import StringIO
+from circuits_bricks.web.client import Client, Request
 
 
 class UPnPDeviceAdapter(BaseComponent, Queryable):
@@ -94,7 +101,7 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
         # Remember the configuration id
         self.config_id = config_id
 
-        # Assemble the services provided for the provider
+        # Assemble the services supported by the provider
         self._services = set()
         service_insts = []
         for (service_type, service_id, controller) in self._props.services:
@@ -154,14 +161,10 @@ class UPnPDeviceController(Controller):
         # Generate a device description for the device
         desc = getattr(self, props.desc_gen)\
             (adapter, config_id, props, service_insts)
-        class Writer(object):
-            result = ""
-            def write(self, value):
-                self.result += value
-        writer = Writer()
+        writer = StringIO()
         writer.write("<?xml version='1.0' encoding='utf-8'?>\n")
         ElementTree(desc).write(writer, encoding="utf-8")
-        self.description = writer.result
+        self.description = writer.getvalue()
 
     def _common_device_desc(self, adapter, config_id, props, services):
         root = Element("{%s}root" % SSDP_DEVICE_SCHEMA,
@@ -213,6 +216,81 @@ class UPnPDeviceController(Controller):
         return self.description
 
 
+class Notification(Event):
+    pass
+
+
+class UPnPSubscription(BaseController):
+    
+    def __init__(self, host, callbacks, timeout, protocol):
+        self._uuid = str(uuid4())
+        super(UPnPSubscription, self).__init__(channel="subs:" + self._uuid)
+        self._host = host
+        self._callbacks = callbacks
+        self._used_callback = 0
+        self._client = Client(self._callbacks[self._used_callback], 
+                              self.channel).register(self)
+        self._protocol = protocol
+        self._seq = 0
+        if timeout > 0:
+            evt = Event.create("upnp_subs_end")
+            evt.channels = self
+            self._expiry_timer = Timer(timeout, evt).register(self)
+
+    @handler("registered")
+    def _on_registered(self, component, parent):
+        if component != self:
+            return
+        @handler("notification", 
+                 channel=parent.channel.scope + "/" + parent.channel.path)
+        def _on_notification_handler(self, state_vars):
+            self._on_notification(state_vars)
+        self.addHandler(_on_notification_handler)
+        state_vars = dict()
+        for name, method in getmembers \
+            (self.parent, lambda x: ismethod(x) and hasattr(x, "_evented_by")):
+            state_vars[name] = method()
+        self._on_notification(state_vars)
+
+    def _on_notification(self, state_vars):
+        writer = StringIO()
+        writer.write("<?xml version='1.0' encoding='utf-8'?>\n")
+        root = Element(QName(UPNP_EVENT_NS, "propertyset"))
+        for name, value in state_vars.items():
+            prop = SubElement(root, QName(UPNP_EVENT_NS, "property"))
+            val = SubElement(prop, name)
+            if isinstance(value, bool):
+                val.text = "1" if value else "0"
+            else:
+                val.text = str(val)
+        ElementTree(root).write(writer, encoding="utf-8")
+        body = writer.getvalue()
+        self.fire(Request("NOTIFY", self._callbacks[self._used_callback], body,
+                          { "CONTENT-TYPE": "text/xml; charset=\"utf-8\"",
+                            "NT": "upnp:event",
+                            "NTS": "upnp:propchange",
+                            "SID": self.sid,
+                            "SEQ": self._seq }))
+        self._seq += 1
+
+    @handler("upnp_subs_end")
+    def _on_subs_end(self):
+        self.unregister()
+
+    @handler("upnp_subs_renewal")
+    def _on_renewal(self, timeout):
+        self._expiry_timer.interval = timeout
+        self._expiry_timer.reset()
+
+    @property
+    def sid(self):
+        return "uuid:" + self._uuid
+
+    @classmethod
+    def sid2chan(cls, sid):
+        return "subs:" + sid[5:]
+
+
 class UPnPServiceController(BaseController):
 
     def __init__ \
@@ -220,6 +298,25 @@ class UPnPServiceController(BaseController):
         super(UPnPServiceController, self).__init__ \
             (channel=ScopedChannel("upnp-web", device_path + "/" + service_id));
         self._service = service
+        self._notification_channel = uuid4()
+
+    @handler("registered")
+    def _on_registered(self, component, parent):
+        if component != self:
+            return
+        @handler("provider_updated", channel=self.parent.provider)
+        def _on_provider_updated_handler(self, provider, changed):
+            self._on_provider_updated(changed)
+        self.addHandler(_on_provider_updated_handler)
+            
+    def _on_provider_updated(self, changed):
+        state_vars = dict()
+        for name, method in getmembers \
+            (self, lambda x: ismethod(x) and hasattr(x, "_evented_by")):
+            state_vars[name] = changed[method._evented_by]
+        if len(state_vars) > 0:
+            self.fire(Notification(state_vars), 
+                      self.channel.scope + "/" + self.channel.path)
 
     @expose("control")
     def _control(self, *args):
@@ -229,7 +326,7 @@ class UPnPServiceController(BaseController):
         for node in payload:
             action_args[node.tag] = node.text
         method = getattr(self, action, None)
-        if method is None or not getattr(method, "is_upnp_service", False):
+        if method is None or not getattr(method, "_is_upnp_service", False):
             return UPnPError(self.request, self.response, 401)
         out_args = method(**action_args)
         result = Element("{%s}%sResponse" % (action_ns, action))
@@ -240,9 +337,53 @@ class UPnPServiceController(BaseController):
 
     @expose("sub")
     def _sub(self, *args):
-        self.response.headers["Content-Type"] = "text/xml"
-        return "sub"
+        if self.request.method == "SUBSCRIBE":
+            timeout = self.request.headers["TIMEOUT"]
+            timeout = timeout[len("Second-"):]
+            try:
+                timeout = int(timeout)
+            except ValueError:
+                timeout = 1800
+            self.response.headers["DATE"] = formatdate()
+            self.response.headers["TIMEOUT"] = "Second-" + str(timeout)
+            if "SID" in self.request.headers:
+                # renewal
+                sid = self.request.headers["SID"]
+                self.response.headers["SID"] = sid
+                self.fire(Event.create("upnp_subs_renewal", timeout), 
+                          UPnPSubscription.sid2chan(sid))
+                return ""
+            h = self.request.headers["HOST"].strip().split(":")
+            host = (h[0], int(h[1]) if len(h) > 1 else 80)
+            callbacks = []
+            for cb in self.request.headers["CALLBACK"].split("<")[1:]:
+                callbacks.append(cb[:cb.rindex(">")])
+            subs = UPnPSubscription(host, callbacks, timeout, 
+                                    self.request.protocol).register(self)
+            self.response.headers["SID"] = subs.sid
+            return ""
+        elif self.request.method == "UNSUBSCRIBE":
+            sid = self.request.headers["SID"]
+            self.fire(Event.create("upnp_subs_end"), 
+                      UPnPSubscription.sid2chan(sid))
+            return ""
+
 
 def upnp_service(f):
-    setattr(f, "is_upnp_service", True)
+    setattr(f, "_is_upnp_service", True)
     return f
+
+def upnp_state(*args, **kwargs):
+    if len(args) == 0 or not hasattr(args[0], "__call__"):
+        # function to be wrapped isn't first parameter, re-wrap
+        def wrapper(f):
+            setattr(f, "_is_upnp_state", True)
+            if "evented_by" in kwargs:
+                setattr(f, "_evented_by", kwargs["evented_by"])
+            return f
+        return wrapper
+    else:
+        # function to be wrapped is first parameter
+        f = args[0]
+        setattr(f, "_is_upnp_state", True)
+        return f

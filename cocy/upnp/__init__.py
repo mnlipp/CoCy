@@ -25,6 +25,7 @@ UPNP_SERVICE_SCHEMA = "urn:schemas-upnp-org:service-1-0"
 UPNP_ROOTDEVICE = "upnp:rootdevice"
 UPNP_SERVICE_ID_PREFIX = "urn:upnp-org:serviceId:"
 UPNP_CONTROL_NS = "urn:schemas-upnp-org:control-1-0"
+UPNP_EVENT_NS = "urn:schemas-upnp-org:event-1-0"
 COCY_SERVICE_EXT = "urn:cocy-service-ext"
 
 from .device_server import UPnPDeviceServer

@@ -28,10 +28,11 @@ from socket import gethostname, gethostbyname
 import time
 from circuits_bricks.core.timers import Timer
 from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS, UPNP_ROOTDEVICE
-import datetime
 from circuits_bricks.misc import ComponentQuery
 from circuits.core.events import Event
 from circuits.web.controllers import Controller
+from email.utils import formatdate
+
 
 class SSDPTranceiver(BaseComponent):
     '''The SSDP protocol server component
@@ -156,8 +157,7 @@ class SSDPSender(BaseComponent):
     def _update_message_env(self, upnp_device):
         self._message_env['CACHE-CONTROL'] = self._message_expiry
         self._message_env['CONFIGID'] = upnp_device.config_id
-        self._message_env['DATE'] \
-            = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+        self._message_env['DATE'] = formatdate()
         self._message_env['LOCATION'] = "http://" + self.hostaddr + ":" \
             + str(upnp_device.web_server_port) + "/" + upnp_device.uuid \
             + "/description.xml"

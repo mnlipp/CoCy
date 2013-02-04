@@ -16,18 +16,29 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from cocy.upnp.adapters.adapter import upnp_service, UPnPServiceController
+from cocy.upnp.adapters.adapter import upnp_service, UPnPServiceController,\
+    upnp_state
 
 class BinarySwitchPowerController(UPnPServiceController):
     
     def __init__(self, device_path, service, service_id):
         super(BinarySwitchPowerController, self).__init__\
             (device_path, service, service_id)
+        self._target = None
+
+    @upnp_state
+    def Target(self):
+        return self._target
+
+    @upnp_state(evented_by="state")
+    def Status(self):
+        return self.parent.provider.state
 
     @upnp_service
     def SetTarget(self, **kwargs):
-        self.parent.provider.state \
-            = (kwargs["newTargetValue"] in ["1", "yes", "true"])
+        self._target \
+            = (kwargs["newTargetValue"].lower() in ["1", "yes", "true"])
+        self.parent.provider.state = self._target 
         return []
 
     @upnp_service
