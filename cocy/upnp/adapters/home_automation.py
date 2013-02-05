@@ -21,9 +21,9 @@ from cocy.upnp.adapters.adapter import upnp_service, UPnPServiceController,\
 
 class BinarySwitchPowerController(UPnPServiceController):
     
-    def __init__(self, device_path, service, service_id):
+    def __init__(self, adapter, device_path, service, service_id):
         super(BinarySwitchPowerController, self).__init__\
-            (device_path, service, service_id)
+            (adapter, device_path, service, service_id)
         self._target = None
 
     @upnp_state

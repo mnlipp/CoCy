@@ -112,7 +112,7 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
             service_insts.append((service, service_id))
             # Create an adapter that links this class's service with the web
             # component interface of circuits
-            controller(self._path, service, service_id).register(self)
+            controller(self, self._path, service, service_id).register(self)
 
         # Create an adapter that links this class with the web
         # component interface of circuits
@@ -241,8 +241,7 @@ class UPnPSubscription(BaseController):
     def _on_registered(self, component, parent):
         if component != self:
             return
-        @handler("notification", 
-                 channel=parent.channel.scope + "/" + parent.channel.path)
+        @handler("notification", channel=parent.notification_channel)
         def _on_notification_handler(self, state_vars):
             self._on_notification(state_vars)
         self.addHandler(_on_notification_handler)
@@ -294,11 +293,16 @@ class UPnPSubscription(BaseController):
 class UPnPServiceController(BaseController):
 
     def __init__ \
-        (self, device_path, service, service_id):
+        (self, adapter, device_path, service, service_id):
         super(UPnPServiceController, self).__init__ \
             (channel=ScopedChannel("upnp-web", device_path + "/" + service_id));
         self._service = service
-        self._notification_channel = uuid4()
+        self._notification_channel = adapter.uuid + "/" \
+            + service_id + "/notifications"
+
+    @property
+    def notification_channel(self):
+        return self._notification_channel
 
     @handler("registered")
     def _on_registered(self, component, parent):
@@ -315,8 +319,7 @@ class UPnPServiceController(BaseController):
             (self, lambda x: ismethod(x) and hasattr(x, "_evented_by")):
             state_vars[name] = changed[method._evented_by]
         if len(state_vars) > 0:
-            self.fire(Notification(state_vars), 
-                      self.channel.scope + "/" + self.channel.path)
+            self.fire(Notification(state_vars), self.notification_channel)
 
     @expose("control")
     def _control(self, *args):
