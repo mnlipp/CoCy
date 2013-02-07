@@ -33,6 +33,8 @@ from inspect import getmembers, ismethod
 from StringIO import StringIO
 from circuits_bricks.web.client import Client, Request
 from cocy.upnp.service import UPnPService
+from circuits_bricks.app.logger import Log
+import logging
 
 
 class UPnPDeviceAdapter(BaseComponent, Queryable):
@@ -242,9 +244,8 @@ class UPnPSubscription(BaseController):
         self._protocol = protocol
         self._seq = 0
         if timeout > 0:
-            evt = Event.create("upnp_subs_end")
-            evt.channels = self
-            self._expiry_timer = Timer(timeout, evt).register(self)
+            self._expiry_timer = Timer \
+                (timeout, Event.create("upnp_subs_end"), self).register(self)
 
     @handler("registered")
     def _on_registered(self, component, parent):
@@ -270,7 +271,7 @@ class UPnPSubscription(BaseController):
             if isinstance(value, bool):
                 val.text = "1" if value else "0"
             else:
-                val.text = str(val)
+                val.text = str(value)
         ElementTree(root).write(writer, encoding="utf-8")
         body = writer.getvalue()
         self.fire(Request("NOTIFY", self._callbacks[self._used_callback], body,
@@ -339,6 +340,8 @@ class UPnPServiceController(BaseController):
             action_args[node.tag] = node.text
         method = getattr(self, action, None)
         if method is None or not getattr(method, "_is_upnp_service", False):
+            self.fire(Log(logging.INFO, 'Action ' + action 
+                          + " not implemented"), "logger")
             return UPnPError(self.request, self.response, 401)
         out_args = method(**action_args)
         result = Element("{%s}%sResponse" % (action_ns, action))
