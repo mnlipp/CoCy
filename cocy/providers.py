@@ -22,8 +22,6 @@ from circuits.core.components import BaseComponent
 from abc import ABCMeta
 from circuits.core.handlers import handler
 from circuits.core.events import Event
-import inspect
-from inspect import getmembers, ismethod
 
 class Manifest(object):
     """
@@ -189,3 +187,7 @@ class BinarySwitch(Provider):
     def state(self, state):
         self._state = state
 
+class MediaRenderer(Provider):
+    __metaclass__ = ABCMeta
+    
+    

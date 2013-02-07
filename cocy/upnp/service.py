@@ -27,7 +27,7 @@ from cocy.upnp import COCY_SERVICE_EXT, UPNP_SERVICE_SCHEMA
 
 class UPnPService(BaseController):
     """
-    A ``UPnPService`` component hold information about a service
+    A ``UPnPService`` component holds information about a service
     and provides HTTP access to the UPnP service description.
     
     As specified in the UPnP architecture, services are
@@ -42,7 +42,7 @@ class UPnPService(BaseController):
     _template_dir = os.path.join(os.path.dirname(__file__), "templates")
     _service_dir = os.path.join(os.path.dirname(__file__), "services")
 
-    def __init__(self, type, ver):
+    def __init__(self, type_ver):
         """
         Instances of this component are created from a service
         description that is selected by the given type and version.        
@@ -52,16 +52,15 @@ class UPnPService(BaseController):
         :param type: the service type
         :param ver: the service version
         """
-        self._type = type
-        self._ver = ver
+        self._type, self._ver = type_ver.split(":", 1)
         self._path = "/%s_%s" % (self._type, self._ver)
         self.channel = ScopedChannel("upnp-web", self._path)
         # Now call super as only now the channel is known and this classes
         # handlers will be registered properly
         super(UPnPService, self).__init__();
-        file = open(os.path.join(self._service_dir, 
-                                 "%s_%s.xml" % (self._type, self._ver)))
-        sd = ElementTree.parse(file).getroot()
+        sfile = open(os.path.join(self._service_dir, 
+                                  "%s_%s.xml" % (self._type, self._ver)))
+        sd = ElementTree.parse(sfile).getroot()
         self._description = ElementTree.tostring(sd)
 
     @property

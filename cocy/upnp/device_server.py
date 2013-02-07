@@ -61,11 +61,6 @@ class UPnPDeviceServer(BaseComponent):
         super(UPnPDeviceServer, self).__init__(channel=channel)
         self._started = False
 
-        # Create and register all known service component types
-        self._service_types = {}
-        service = UPnPService("SwitchPower", 1).register(self)
-        self._service_types[service.type_ver] = service
-
         # Build a web (HTTP) server for handling requests. This is
         # the server that will be announced by SSDP, so it has
         # no fixed port number.
@@ -99,9 +94,8 @@ class UPnPDeviceServer(BaseComponent):
         if not isinstance(component, Provider):
             return
         from cocy.upnp.adapters.adapter import UPnPDeviceAdapter
-        device = UPnPDeviceAdapter(component, self.config_id, \
-                   self._uuid_db, self._service_types, \
-                   self.web_server.port).register(self)
+        device = UPnPDeviceAdapter(self, component, self.config_id, \
+                   self._uuid_db, self.web_server.port).register(self)
         if not device.valid:
             return
         self._devices.append(device)

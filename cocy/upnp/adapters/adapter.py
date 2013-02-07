@@ -32,6 +32,7 @@ from circuits.core.handlers import handler
 from inspect import getmembers, ismethod
 from StringIO import StringIO
 from circuits_bricks.web.client import Client, Request
+from cocy.upnp.service import UPnPService
 
 
 class UPnPDeviceAdapter(BaseComponent, Queryable):
@@ -63,6 +64,7 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
             self.services = services
             self.desc_gen = desc_gen
 
+    _service_registry = dict()
     _mapping = dict()
     """
     This dictionary maps the defined :class:`cocy.providers.Provider`
@@ -71,10 +73,12 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
 
     @classmethod
     def add_adapter(cls, provider_class, props):
+        # Create and register all known service types
         cls._mapping[provider_class] = props
 
-    def __init__(self, provider, config_id, uuid_map, service_map, port):
+    def __init__(self, server, provider, config_id, uuid_map, port):
         super(UPnPDeviceAdapter, self).__init__();
+        
         # It may turn out that no adapter can be constructed
         self.valid = False
         # Try to find a match UPnP info for the device 
@@ -105,9 +109,14 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
         self._services = set()
         service_insts = []
         for (service_type, service_id, controller) in self._props.services:
-            if not service_map.has_key(service_type):
-                continue
-            service = service_map[service_type]
+            if not UPnPDeviceAdapter._service_registry.has_key(service_type):
+                try:
+                    service = UPnPService(service_type).register(self) \
+                        .register(server)
+                except:
+                    continue
+            else:
+                service = UPnPDeviceAdapter._service_registry[service_type]
             self._services.add(service)
             service_insts.append((service, service_id))
             # Create an adapter that links this class's service with the web
