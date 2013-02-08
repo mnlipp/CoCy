@@ -89,15 +89,16 @@ class UPnPDeviceServer(BaseComponent):
             SSDPTranceiver().register(self.parent)
         return self
 
-    @handler("registered")
+    @handler("registered", channel="*")
     def _on_registered(self, component, manager):
         if not isinstance(component, Provider):
             return
         from cocy.upnp.adapters.adapter import UPnPDeviceAdapter
         device = UPnPDeviceAdapter(self, component, self.config_id, \
-                   self._uuid_db, self.web_server.port).register(self)
+                                   self._uuid_db, self.web_server.port)
         if not device.valid:
             return
+        device.register(self)
         self._devices.append(device)
         if self._started:
             self.fireEvent(DeviceAvailable(device))

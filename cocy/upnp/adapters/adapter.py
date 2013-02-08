@@ -88,7 +88,7 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
             if isinstance(provider, itf):
                 self.valid = True
                 self._props = props
-            break;
+                break;
         if not self.valid:
             return
         # Remember the provider as our "model"
@@ -318,8 +318,10 @@ class UPnPServiceController(BaseController):
     def _on_registered(self, component, parent):
         if component != self:
             return
-        @handler("provider_updated", channel=self.parent.provider)
+        @handler("provider_updated", channel=self.parent.provider.channel)
         def _on_provider_updated_handler(self, provider, changed):
+            if provider != self.parent.provider:
+                return
             self._on_provider_updated(changed)
         self.addHandler(_on_provider_updated_handler)
             
@@ -327,7 +329,8 @@ class UPnPServiceController(BaseController):
         state_vars = dict()
         for name, method in getmembers \
             (self, lambda x: ismethod(x) and hasattr(x, "_evented_by")):
-            state_vars[name] = changed[method._evented_by]
+            if method._evented_by is not None:
+                state_vars[name] = changed[method._evented_by]
         if len(state_vars) > 0:
             self.fire(Notification(state_vars), self.notification_channel)
 

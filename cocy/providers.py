@@ -176,6 +176,9 @@ class BinarySwitch(Provider):
     an off state that is to be controlled remotely.
     """
     __metaclass__ = ABCMeta
+    
+    channel = "binary_switch"
+    
     _state = False
 
     @property
@@ -187,7 +190,43 @@ class BinarySwitch(Provider):
     def state(self, state):
         self._state = state
 
-class MediaRenderer(Provider):
+
+class MediaPlayer(Provider):
     __metaclass__ = ABCMeta
     
+    channel = "media_player"
     
+    _state = "IDLE"
+    _source = None
+    
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    @evented(auto_publish=True)
+    def state(self, state):
+        self._state = state
+
+    @property
+    def source(self):
+        return self._source
+
+    @source.setter
+    @evented(auto_publish=True)
+    def source(self, uri):
+        self._source = uri
+
+    @handler("load")
+    def _on_load(self, uri):
+        self.source = uri
+
+    @handler("play")
+    def _on_play(self):
+        if self._source is None:
+            return
+        self.state = "PLAYING"
+        
+    @handler("stop")
+    def _on_stop(self):
+        self.state = "IDLE"

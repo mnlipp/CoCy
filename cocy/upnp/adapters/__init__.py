@@ -17,7 +17,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from cocy.upnp.adapters.adapter import UPnPDeviceAdapter
-from cocy.providers import BinarySwitch, MediaRenderer
+from cocy.providers import BinarySwitch, MediaPlayer
 from cocy.upnp import UPNP_SERVICE_ID_PREFIX
 from cocy.upnp.adapters.home_automation import BinarySwitchPowerController
 from cocy.upnp.adapters.audio_video import RenderingController,\
@@ -31,7 +31,7 @@ UPnPDeviceAdapter.add_adapter \
       "_common_device_desc"))
 
 UPnPDeviceAdapter.add_adapter \
-    (MediaRenderer, UPnPDeviceAdapter.DeviceProperties \
+    (MediaPlayer, UPnPDeviceAdapter.DeviceProperties \
      ("MediaRenderer", 1.0, 1, 0,
       [("RenderingControl:1", UPNP_SERVICE_ID_PREFIX + "RenderingControl:1",
         RenderingController),

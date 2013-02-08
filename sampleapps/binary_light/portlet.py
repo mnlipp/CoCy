@@ -31,7 +31,7 @@ class BinaryLightPortlet(TemplatePortlet):
         super(BinaryLightPortlet, self) \
             .__init__(os.path.dirname(__file__), "binary_light", weight=1)
         self._binary_light = binary_light
-        @handler("provider_updated", channel=binary_light)
+        @handler("provider_updated", channel=binary_light.channel)
         def _on_provider_updated(self, provider, changed):
             self._on_updated(provider, changed)
         self.addHandler(_on_provider_updated)
@@ -53,9 +53,11 @@ class BinaryLightPortlet(TemplatePortlet):
         self._portal_channel = portal.channel
         @handler("portal_client_connect", channel=portal.channel)
         def _on_client_connect(*args):
-            self._on_updated(None, None)
+            self._on_updated(self._binary_light, None)
         self.addHandler(_on_client_connect)
 
     def _on_updated(self, provider, changed):
+        if provider != self._binary_light:
+            return
         self.fire(PortalUpdate(self, "new_state", self._binary_light.state),
                    self._portal_channel)

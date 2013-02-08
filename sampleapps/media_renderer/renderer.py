@@ -21,13 +21,13 @@
 from cocy.providers import Manifest
 from cocy import providers
 
-class MediaRenderer(providers.MediaRenderer):
+class DummyPlayer(providers.MediaPlayer):
     '''
     classdocs
     '''
 
-    manifest = Manifest("Sample Media Renderer", "CoCy Media Renderer")
+    manifest = Manifest("Dummy Player", "CoCy Dummy Media Player")
 
     def __init__(self):
-        super(providers.MediaRenderer, self).__init__(self.manifest)
+        super(providers.MediaPlayer, self).__init__(self.manifest)
 

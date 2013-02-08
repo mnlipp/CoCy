@@ -36,7 +36,7 @@ class UPnPCombinedEventsServiceController(UPnPServiceController):
         self._changes = dict()
         self._updates_locked = False
         
-    @upnp_state(evented_by="*")
+    @upnp_state(evented_by=None)
     def LastChange(self):
         writer = StringIO()
         root = Element(QName(UPNP_AVT_EVENT_NS, "Event"))
@@ -81,6 +81,7 @@ class RenderingController(UPnPServiceController):
         self.fire(Log(logging.DEBUG, "GetVolume called"), "logger")
         return [("CurrentVolume", str(self.volume))]
 
+
 class ConnectionManagerController(UPnPServiceController):
     
     def __init__(self, adapter, device_path, service, service_id):
@@ -102,7 +103,19 @@ class AVTransportController(UPnPCombinedEventsServiceController):
             (adapter, device_path, service, service_id)
         self._target = None
         self._transport_state = "STOPPED"
+        @handler("provider_updated", channel=adapter.provider.channel)
+        def _on_provider_updated_handler(self, provider, changed):
+            if provider != self.adapter.provider:
+                return
+            self._on_provider_updated(changed)
+        self.addHandler(_on_provider_updated_handler)
+            
+    def _on_provider_updated(self, changed):
+        for name, value in changed.items():
+            if name == "source":
+                self.addChange("AVTransportURI", value)
 
+        
     @upnp_service
     def GetTransportInfo(self, **kwargs):
         self.fire(Log(logging.DEBUG, "GetTransportInfo called"), "logger")
@@ -127,7 +140,8 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     def SetAVTransportURI(self, **kwargs):
         self.fire(Log(logging.DEBUG, 'AV Transport URI set to '
                       + kwargs["CurrentURI"]), "logger")
-        self.addChange("AVTransportURI", kwargs["CurrentURI"])
+        self.fire(Event.create("Load", kwargs["CurrentURI"]),
+                  self.parent.provider.channel)
         return []
     
     @upnp_service

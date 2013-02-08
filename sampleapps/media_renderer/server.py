@@ -20,8 +20,8 @@
 """
 from util.python26fix import install_python26_fix
 install_python26_fix()
+from media_renderer.renderer import DummyPlayer
 
-from media_renderer.misc import MediaRenderer
 from cocy.portlets.portlets_factory import PortletsFactory
 from circuits_minpor import Portal
 from cocy.upnp.device_directory import UPnPDeviceDirectory
@@ -59,17 +59,17 @@ if __name__ == '__main__':
     Debugger().register(application)
     ErrorHandler().register(application)
     
-    # Build a portal as user interface
-    port = int(application.config.get("ui", "port", 0))
-    portal_server = BaseServer(("", port), channel="ui").register(application)
-    portal = Portal(portal_server, title="CoCy").register(application)
-    PortletsFactory().register(application)
-    dev_dir = UPnPDeviceDirectory().register(application)
+#    # Build a portal as user interface
+#    port = int(application.config.get("ui", "port", 0))
+#    portal_server = BaseServer(("", port), channel="ui").register(application)
+#    portal = Portal(portal_server, title="CoCy").register(application)
+#    PortletsFactory().register(application)
+#    dev_dir = UPnPDeviceDirectory().register(application)
 
-    # The light server    
+    # The server    
     upnp_dev_server \
         = UPnPDeviceServer(application.app_dir).register(application)
-    media_renderer = MediaRenderer().register(application)
+    media_renderer = DummyPlayer().register(application)
     
     from circuits.tools import graph
     print graph(application)
