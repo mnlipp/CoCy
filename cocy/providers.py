@@ -151,9 +151,13 @@ def evented(*args, **kwargs):
             or self._provider_state[f.__name__] != new_value:
             self._provider_changed[f.__name__] = new_value
         self._provider_state[f.__name__] = new_value
+        # Invoking the method can generate more changes, combine them
+        if not auto_publish or getattr(self, "_auto_publish_pending", False):
+            return f(self, new_value)
+        self._auto_publish_pending = True
         result = f(self, new_value)
-        if auto_publish:
-            self._publish_updates()
+        self._publish_updates()
+        self._auto_publish_pending = False
         return result
     
     if len(args) == 0 or not hasattr(args[0], "__call__"):
@@ -196,9 +200,43 @@ class MediaPlayer(Provider):
     
     channel = "media_player"
     
-    _state = "IDLE"
-    _source = None
+    def __init__(self, provider_manifest, **kwargs):
+        super(MediaPlayer, self).__init__(provider_manifest, **kwargs)        
+        self._state = "IDLE"
+        self._source = None
+        self._tracks = 0
+        self._current_track = 0
+        self._current_track_duration = None
     
+    @property
+    def tracks(self):
+        return self._tracks
+    
+    @tracks.setter
+    @evented(auto_publish=True)
+    def tracks(self, n):
+        self._tracks = n
+        if n == 0:
+            self.current_track = 0
+
+    @property
+    def current_track(self):
+        return self._current_track
+    
+    @current_track.setter
+    @evented(auto_publish=True)
+    def current_track(self, n):
+        self._current_track = n
+
+    @property
+    def current_track_duration(self):
+        return self._current_track_duration
+    
+    @current_track_duration.setter
+    @evented(auto_publish=True)
+    def current_track_duration(self, t):
+        self._current_track_duration = t
+
     @property
     def state(self):
         return self._state
@@ -217,9 +255,15 @@ class MediaPlayer(Provider):
     def source(self, uri):
         self._source = uri
 
+    def current_position(self):
+        return None
+
     @handler("load")
     def _on_load(self, uri):
-        self.source = uri
+        if self.source != uri:
+            self.source = uri
+            self.tracks = 1
+            self.current_track = 1
 
     @handler("play")
     def _on_play(self):

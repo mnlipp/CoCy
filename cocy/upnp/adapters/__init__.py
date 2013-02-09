@@ -40,3 +40,14 @@ UPnPDeviceAdapter.add_adapter \
        ("AVTransport:1", UPNP_SERVICE_ID_PREFIX + "AVTransport:1",
         AVTransportController)],
       "_common_device_desc"))
+
+#UPnPDeviceAdapter.add_adapter \
+#    (MediaPlayer, UPnPDeviceAdapter.DeviceProperties \
+#     ("MediaRenderer", 3, 1, 0,
+#      [("RenderingControl:3", UPNP_SERVICE_ID_PREFIX + "RenderingControl:3",
+#        RenderingController),
+#       ("ConnectionManager:3", UPNP_SERVICE_ID_PREFIX + "ConnectionManager:3",
+#        ConnectionManagerController),
+#       ("AVTransport:3", UPNP_SERVICE_ID_PREFIX + "AVTransport:3",
+#        AVTransportController)],
+#      "_common_device_desc"))

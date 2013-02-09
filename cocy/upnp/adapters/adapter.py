@@ -350,7 +350,7 @@ class UPnPServiceController(BaseController):
         result = Element("{%s}%sResponse" % (action_ns, action))
         for name, value in out_args:
             arg = SubElement(result, name)
-            arg.text = value
+            arg.text = str(value)
         return buildSoapResponse(self.response, result)
 
     @expose("sub")

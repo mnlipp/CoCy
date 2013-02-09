@@ -20,6 +20,8 @@
 """
 from cocy.providers import Manifest
 from cocy import providers
+from circuits.core.handlers import handler
+import time
 
 class DummyPlayer(providers.MediaPlayer):
     '''
@@ -29,5 +31,18 @@ class DummyPlayer(providers.MediaPlayer):
     manifest = Manifest("Dummy Player", "CoCy Dummy Media Player")
 
     def __init__(self):
-        super(providers.MediaPlayer, self).__init__(self.manifest)
+        super(DummyPlayer, self).__init__(self.manifest)
+        self._play_started_at = None
 
+    @handler("play", override=True)
+    def _on_play(self):
+        super(DummyPlayer, self)._on_play()
+        if self._source is None:
+            return
+        self.current_track_duration = 300
+        self._play_started_at = time.time()
+
+    def current_position(self):
+        if self._play_started_at is None:
+            return None
+        return time.time() - self._play_started_at

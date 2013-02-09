@@ -133,17 +133,24 @@ class SSDPSender(BaseComponent):
    
     @handler("device_match")
     def _on_device_match(self, upnp_device, inquirer, search_target):
+        self._update_message_env(upnp_device)
         if search_target == "ssdp:all":
-            self._update_message_env(upnp_device)
             self._send_device_messages(upnp_device, "result", inquirer)
         else:
-            self._update_message_env(upnp_device)
             if search_target == "upnp:rootdevice":
                 self._send_root_message(upnp_device, "notify-result", inquirer)
             elif search_target.startswith("uuid:"):
                 self._send_uuid_message(upnp_device, "notify-result", inquirer)
-            elif search_target.startswith("urn:"):
-                self._send_type_message(upnp_device, "notify-result", inquirer)
+            elif search_target.startswith(SSDP_SCHEMAS + ":device:"):
+                self._send_device_message \
+                    (upnp_device, "notify-result", inquirer)
+            elif search_target.startswith(SSDP_SCHEMAS + ":service:"):
+                for service in upnp_device.services:
+                    if search_target \
+                        != SSDP_SCHEMAS + ":service:" + service.type_ver:
+                        continue
+                    self._send_service_message \
+                        (upnp_device, service, "result", inquirer)
             
     @handler("upnp_search_request")
     def _on_search_request(self, event, search_target=UPNP_ROOTDEVICE, mx=1):
@@ -171,7 +178,7 @@ class SSDPSender(BaseComponent):
         # Device UUID announcement
         self._send_uuid_message(upnp_device, template, to)
         # Device type announcement
-        self._send_type_message(upnp_device, template, to)
+        self._send_device_message(upnp_device, template, to)
         
     def _send_root_message(self, upnp_device, template, 
                            to=(SSDP_ADDR, SSDP_PORT)):
@@ -186,7 +193,7 @@ class SSDPSender(BaseComponent):
         self._message_env['USN'] = 'uuid:' + upnp_device.uuid
         self._send_template(template, self._message_env, to)
 
-    def _send_type_message(self, upnp_device, template, 
+    def _send_device_message(self, upnp_device, template, 
                            to=(SSDP_ADDR, SSDP_PORT)):
         self._message_env['NT'] = SSDP_SCHEMAS + ":device:" \
             + upnp_device.type_ver
@@ -209,6 +216,7 @@ class SSDPSender(BaseComponent):
         headers = ""
         for line in message.splitlines():
             headers = headers + line + "\r\n"
+        headers = headers + "Content-Length: 0\r\n"
         headers = headers + "\r\n"
         self.fireEvent(Write(to, headers))
                     
@@ -314,7 +322,7 @@ class SSDPReceiver(BaseComponent):
             # matching devices
             search_target = None
             for line in lines[1:len(lines)-1]:
-                if not line.startswith("ST:"):
+                if not line.upper().startswith("ST:"):
                     continue
                 search_target = line.split(':', 1)[1].strip()
                 f = lambda dev: True

@@ -101,20 +101,34 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     def __init__(self, adapter, device_path, service, service_id):
         super(AVTransportController, self).__init__\
             (adapter, device_path, service, service_id)
+        self._provider = adapter.provider
         self._target = None
         self._transport_state = "STOPPED"
-        @handler("provider_updated", channel=adapter.provider.channel)
+        @handler("provider_updated", channel=self._provider.channel)
         def _on_provider_updated_handler(self, provider, changed):
-            if provider != self.adapter.provider:
+            if provider != self._provider:
                 return
             self._on_provider_updated(changed)
         self.addHandler(_on_provider_updated_handler)
-            
+
+    def _format_duration(self, duration):
+        return "%d:%02d:%02d" % (int(duration / 3600), 
+                                 int(int(duration) % 3600 / 60),
+                                 int(duration) % 60)
+
     def _on_provider_updated(self, changed):
         for name, value in changed.items():
             if name == "source":
                 self.addChange("AVTransportURI", value)
-
+                continue
+            if name == "state":
+                if value == "PLAYING":
+                    self._transport_state = "PLAYING"
+                    self.addChange("TransportState", self._transport_state)
+                elif value == "IDLE":
+                    self._transport_state = "STOPPED"
+                    self.addChange("TransportState", self._transport_state)
+                continue
         
     @upnp_service
     def GetTransportInfo(self, **kwargs):
@@ -126,15 +140,34 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     @upnp_service
     def GetMediaInfo(self, **kwargs):
         self.fire(Log(logging.DEBUG, "GetMediaInfo called"), "logger")
-        return [("NrTracks", "0"),
+        return [("NrTracks", self._provider.tracks),
                 ("MediaDuration", "0:00:00"),
-                ("CurrentURI", ""),
+                ("CurrentURI", self._provider.source),
                 ("CurrentURIMetaData", ""),
                 ("NextURI", "NOT_IMPLEMENTED"),
                 ("NextURIMetaData", "NOT_IMPLEMENTED"),
                 ("PlayMedium", "NONE"),
                 ("RecordMedium", "NOT_IMPLEMENTED"),
                 ("WriteStatus", "NOT_IMPLEMENTED")]
+
+    @upnp_service
+    def GetPositionInfo(self, **kwargs):
+        rel_pos = self._provider.current_position()
+        info = [("Track", self._provider.current_track),
+                ("TrackDuration", "NOT_IMPLEMENTED" \
+                 if self._provider.current_track_duration is None\
+                 else self._format_duration \
+                    (self._provider.current_track_duration)),
+                ("TrackMetaData", "NOT_IMPLEMENTED"),
+                ("TrackURI", self._provider.source),
+                ("RelTime", "NOT_IMPLEMENTED" if rel_pos is None \
+                 else self._format_duration(rel_pos)),
+                ("AbsTime", "NOT_IMPLEMENTED"),
+                ("RelCount", 2147483647),
+                ("AbsCount", 2147483647)]
+        self.fire(Log(logging.DEBUG, "GetPositioInfo called, returns " 
+                      + str(info)), "logger")
+        return info
 
     @upnp_service
     def SetAVTransportURI(self, **kwargs):
@@ -147,15 +180,15 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     @upnp_service
     def Play(self, **kwargs):
         self.fire(Log(logging.DEBUG, "Play called"), "logger")
-        self._transport_state = "PLAYING"
-        self.addChange("TransportState", self._transport_state)
+        self.fire(Event.create("Play"),
+                  self.parent.provider.channel)
         return []
     
     @upnp_service
     def Stop(self, **kwargs):
         self.fire(Log(logging.DEBUG, "Stop called"), "logger")
-        self._transport_state = "STOPPED"
-        self.addChange("TransportState", self._transport_state)
+        self.fire(Event.create("Stop"),
+                  self.parent.provider.channel)
         return []
     
     
