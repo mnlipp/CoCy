@@ -1,9 +1,9 @@
 HTTP/1.1 200 OK
-CACHE-CONTROL: max-age=%(CACHE-CONTROL)i
-DATE: %(DATE)s
-EXT: 
-LOCATION: %(LOCATION)s
-SERVER: %(SERVER)s
+Cache-Control: max-age=%(CACHE-CONTROL)i
+Date: %(DATE)s
+Ext: 
+Location: %(LOCATION)s
+Server: %(SERVER)s
 ST: %(NT)s
 USN: %(USN)s
 BOOTID.UPNP.ORG: %(BOOTID)i
