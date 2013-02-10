@@ -27,23 +27,26 @@ from circuits.core.handlers import handler
 from StringIO import StringIO
 from xml.etree.ElementTree import Element, QName, ElementTree, SubElement
 from cocy.upnp import UPNP_AVT_EVENT_NS
+from util import misc
 
 class UPnPCombinedEventsServiceController(UPnPServiceController):
     
-    def __init__(self, adapter, device_path, service, service_id):
+    def __init__(self, adapter, device_path, service, service_id, event_ns):
         super(UPnPCombinedEventsServiceController, self).__init__\
             (adapter, device_path, service, service_id)
+        self._event_ns = event_ns
         self._changes = dict()
         self._updates_locked = False
         
     @upnp_state(evented_by=None)
     def LastChange(self):
-        writer = StringIO()
-        root = Element(QName(UPNP_AVT_EVENT_NS, "Event"))
-        inst = SubElement(root, QName(UPNP_AVT_EVENT_NS, "InstanceID"), 
+        root = Element(QName(self._event_ns, "Event"))
+        inst = SubElement(root, QName(self._event_ns, "InstanceID"), 
                                       { "val": "0" })
         for name, value in self._changes.items():
-            SubElement(inst, QName(UPNP_AVT_EVENT_NS, name), { "val": value })
+            SubElement(inst, QName(self._event_ns, name), { "val": value })
+        misc.set_ns_prefixes(root, { "": self._event_ns })
+        writer = StringIO()
         ElementTree(root).write(writer, encoding="utf-8")
         return writer.getvalue()
 
@@ -100,7 +103,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     
     def __init__(self, adapter, device_path, service, service_id):
         super(AVTransportController, self).__init__\
-            (adapter, device_path, service, service_id)
+            (adapter, device_path, service, service_id, UPNP_AVT_EVENT_NS)
         self._provider = adapter.provider
         self._target = None
         self._transport_state = "STOPPED"

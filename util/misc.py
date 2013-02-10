@@ -19,8 +19,9 @@
 .. codeauthor:: mnl
 """
 from soaplib.soap import from_soap
-from xml.etree.ElementTree import ElementTree, Element, SubElement
+from xml.etree.ElementTree import ElementTree, Element, SubElement, QName
 import soaplib
+from StringIO import StringIO
 
 def splitQTag (tag):
     tag_ns, tag_name = tag.split("}", 1)
@@ -51,6 +52,7 @@ def parseSoapRequest(request):
 
     return soapAction, soapheader, payload
 
+
 def buildSoapResponse(response, body):
     # construct the soap response, and serialize it
     envelope = Element('{%s}Envelope' % soaplib.ns_soap_env)
@@ -58,12 +60,48 @@ def buildSoapResponse(response, body):
     soap_body = SubElement(envelope, '{%s}Body' % soaplib.ns_soap_env)
     soap_body.append(body)
 
-    class Writer(object):
-        result = ""
-        def write(self, value):
-            self.result += value
-    writer = Writer()
+    writer = StringIO()
     response.headers["Content-Type"] = "text/xml; charset=utf-8"
-    writer.write("<?xml version='1.0' encoding='utf-8'?>\n")
+    writer.write("<?xml version='1.0' encoding='utf-8'?>")
     ElementTree(envelope).write(writer, encoding="utf-8")
-    return writer.result
+    return writer.getvalue()
+
+
+def set_ns_prefixes(elem, prefix_map):
+
+    # build uri map and add to root element
+    uri_map = {}
+    for prefix, uri in prefix_map.items():
+        uri_map[uri] = prefix
+        elem.set("xmlns" + "" if not prefix else (":" + prefix), uri)
+
+    # fixup all elements in the tree
+    memo = {}
+    for elem in elem.getiterator():
+        _fixup_element_prefixes(elem, uri_map, memo)
+        
+
+def _fixup_element_prefixes(elem, uri_map, memo):
+    def fixup(name):
+        try:
+            return memo[name]
+        except KeyError:
+            if isinstance(name, QName):
+                name = str(name)
+            if name[0] != "{":
+                return
+            uri, tag = name[1:].split("}")
+            if uri in uri_map:
+                new_name = (uri_map[uri] + ":") if uri_map[uri] else "" + tag
+                memo[name] = new_name
+                return new_name
+    # fix element name
+    name = fixup(elem.tag)
+    if name:
+        elem.tag = name
+    # fix attribute names
+    for key, value in elem.items():
+        name = fixup(key)
+        if name:
+            elem.set(name, value)
+            del elem.attrib[key]

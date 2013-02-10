@@ -22,7 +22,7 @@ from uuid import uuid4
 from xml.etree.ElementTree import ElementTree, Element, SubElement, QName
 from circuits_bricks.web.dispatchers.dispatcher import ScopedChannel
 from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_EVENT_NS,\
-    UPNP_SERVICE_ID_PREFIX
+    UPNP_SERVICE_ID_PREFIX, SERVER_HELLO
 from circuits.web.controllers import Controller, expose, BaseController
 from util.misc import parseSoapRequest, splitQTag, buildSoapResponse
 from cocy.upnp.device_server import UPnPError
@@ -36,6 +36,7 @@ from circuits_bricks.web.client import Client, Request
 from cocy.upnp.service import UPnPService
 from circuits_bricks.app.logger import Log
 import logging
+from util import misc
 
 
 class UPnPDeviceAdapter(BaseComponent, Queryable):
@@ -174,6 +175,7 @@ class UPnPDeviceController(Controller):
         # Generate a device description for the device
         desc = getattr(self, props.desc_gen)\
             (adapter, config_id, props, service_insts)
+        misc.set_ns_prefixes(desc, { "": SSDP_DEVICE_SCHEMA })
         writer = StringIO()
         writer.write("<?xml version='1.0' encoding='utf-8'?>")
         ElementTree(desc).write(writer, encoding="utf-8")
@@ -235,10 +237,9 @@ class Notification(Event):
 
 class UPnPSubscription(BaseController):
     
-    def __init__(self, host, callbacks, timeout, protocol):
+    def __init__(self, callbacks, timeout, protocol):
         self._uuid = str(uuid4())
         super(UPnPSubscription, self).__init__(channel="subs:" + self._uuid)
-        self._host = host
         self._callbacks = callbacks
         self._used_callback = 0
         self._client = Client(self._callbacks[self._used_callback], 
@@ -264,16 +265,17 @@ class UPnPSubscription(BaseController):
         self._on_notification(state_vars)
 
     def _on_notification(self, state_vars):
-        writer = StringIO()
-        writer.write("<?xml version='1.0' encoding='utf-8'?>")
         root = Element(QName(UPNP_EVENT_NS, "propertyset"))
         for name, value in state_vars.items():
             prop = SubElement(root, QName(UPNP_EVENT_NS, "property"))
-            val = SubElement(prop, name)
+            val = SubElement(prop, QName(UPNP_EVENT_NS, name))
             if isinstance(value, bool):
                 val.text = "1" if value else "0"
             else:
                 val.text = str(value)
+        misc.set_ns_prefixes(root, { "": UPNP_EVENT_NS })
+        writer = StringIO()
+        writer.write("<?xml version='1.0' encoding='utf-8'?>")
         ElementTree(root).write(writer, encoding="utf-8")
         body = writer.getvalue()
         self.fire(Request("NOTIFY", self._callbacks[self._used_callback], body,
@@ -348,7 +350,10 @@ class UPnPServiceController(BaseController):
             self.fire(Log(logging.INFO, 'Action ' + action 
                           + " not implemented"), "logger")
             return UPnPError(self.request, self.response, 401)
-        out_args = method(**action_args)
+        try:
+            out_args = method(**action_args)
+        except UPnPError as error:
+            return error
         result = Element("{%s}%sResponse" % (action_ns, action))
         for name, value in out_args:
             arg = SubElement(result, name)
@@ -358,14 +363,15 @@ class UPnPServiceController(BaseController):
     @expose("sub")
     def _sub(self, *args):
         if self.request.method == "SUBSCRIBE":
-            timeout = self.request.headers["TIMEOUT"]
+            timeout = self.request.headers["Timeout"]
             timeout = timeout[len("Second-"):]
             try:
                 timeout = int(timeout)
             except ValueError:
                 timeout = 1800
             self.response.headers["Date"] = formatdate(usegmt=True)
-            self.response.headers["TIMEOUT"] = "Second-" + str(timeout)
+            self.response.headers["Server"] = SERVER_HELLO
+            self.response.headers["Timeout"] = "Second-" + str(timeout)
             if "SID" in self.request.headers:
                 # renewal
                 sid = self.request.headers["SID"]
@@ -373,12 +379,10 @@ class UPnPServiceController(BaseController):
                 self.fire(Event.create("upnp_subs_renewal", timeout), 
                           UPnPSubscription.sid2chan(sid))
                 return ""
-            h = self.request.headers["Host"].strip().split(":")
-            host = (h[0], int(h[1]) if len(h) > 1 else 80)
             callbacks = []
             for cb in self.request.headers["CALLBACK"].split("<")[1:]:
                 callbacks.append(cb[:cb.rindex(">")])
-            subs = UPnPSubscription(host, callbacks, timeout, 
+            subs = UPnPSubscription(callbacks, timeout, 
                                     self.request.protocol).register(self)
             self.response.headers["SID"] = subs.sid
             return ""

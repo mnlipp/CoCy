@@ -27,7 +27,8 @@ import platform
 from socket import gethostname, gethostbyname
 import time
 from circuits_bricks.core.timers import Timer
-from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS, UPNP_ROOTDEVICE
+from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS, UPNP_ROOTDEVICE,\
+    SERVER_HELLO
 from circuits_bricks.misc import ComponentQuery
 from circuits.core.events import Event
 from circuits.web.controllers import Controller
@@ -82,9 +83,7 @@ class SSDPSender(BaseComponent):
         # Setup the common entries in the dictionary that will be usd to
         # fill the UPnP templates.
         self._message_env['BOOTID'] = self._boot_id
-        self._message_env['SERVER'] \
-            = (platform.system() + '/' + platform.release()
-               + " UPnP/1.1 CoCy/0.1")
+        self._message_env['SERVER'] = SERVER_HELLO
         self.hostaddr = gethostbyname(gethostname())
         if self.hostaddr.startswith("127.") and not "." in gethostname():
             try:

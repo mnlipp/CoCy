@@ -16,6 +16,8 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import platform
+
 SSDP_PORT = 1900
 SSDP_ADDR = '239.255.255.250'
 
@@ -26,8 +28,11 @@ UPNP_ROOTDEVICE = "upnp:rootdevice"
 UPNP_SERVICE_ID_PREFIX = "urn:upnp-org:serviceId:"
 UPNP_CONTROL_NS = "urn:schemas-upnp-org:control-1-0"
 UPNP_EVENT_NS = "urn:schemas-upnp-org:event-1-0"
-UPNP_AVT_EVENT_NS = "urn:schemas-upnp-org:metadata-1-0/AVT_RCS"
+UPNP_AVT_EVENT_NS = "urn:schemas-upnp-org:metadata-1-0/AVT/"
 COCY_SERVICE_EXT = "urn:cocy-service-ext"
+
+SERVER_HELLO = (platform.system() + '/' + platform.release()
+                + " UPnP/1.1 CoCy/0.1")
 
 from .device_server import UPnPDeviceServer
 from .adapters.adapter import UPnPDeviceAdapter
