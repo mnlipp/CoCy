@@ -114,7 +114,8 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
         for (service_type, service_id, controller) in self._props.services:
             if not UPnPDeviceAdapter._service_registry.has_key(service_type):
                 try:
-                    service = UPnPService(service_type).register(self) \
+                    service = UPnPService \
+                        (config_id, service_type).register(self) \
                         .register(server)
                 except:
                     continue
@@ -174,7 +175,7 @@ class UPnPDeviceController(Controller):
         desc = getattr(self, props.desc_gen)\
             (adapter, config_id, props, service_insts)
         writer = StringIO()
-        writer.write("<?xml version='1.0' encoding='utf-8'?>\n")
+        writer.write("<?xml version='1.0' encoding='utf-8'?>")
         ElementTree(desc).write(writer, encoding="utf-8")
         self.description = writer.getvalue()
 
@@ -264,7 +265,7 @@ class UPnPSubscription(BaseController):
 
     def _on_notification(self, state_vars):
         writer = StringIO()
-        writer.write("<?xml version='1.0' encoding='utf-8'?>\n")
+        writer.write("<?xml version='1.0' encoding='utf-8'?>")
         root = Element(QName(UPNP_EVENT_NS, "propertyset"))
         for name, value in state_vars.items():
             prop = SubElement(root, QName(UPNP_EVENT_NS, "property"))
@@ -363,7 +364,7 @@ class UPnPServiceController(BaseController):
                 timeout = int(timeout)
             except ValueError:
                 timeout = 1800
-            self.response.headers["DATE"] = formatdate()
+            self.response.headers["Date"] = formatdate(usegmt=True)
             self.response.headers["TIMEOUT"] = "Second-" + str(timeout)
             if "SID" in self.request.headers:
                 # renewal
@@ -372,7 +373,7 @@ class UPnPServiceController(BaseController):
                 self.fire(Event.create("upnp_subs_renewal", timeout), 
                           UPnPSubscription.sid2chan(sid))
                 return ""
-            h = self.request.headers["HOST"].strip().split(":")
+            h = self.request.headers["Host"].strip().split(":")
             host = (h[0], int(h[1]) if len(h) > 1 else 80)
             callbacks = []
             for cb in self.request.headers["CALLBACK"].split("<")[1:]:

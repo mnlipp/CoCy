@@ -164,7 +164,7 @@ class SSDPSender(BaseComponent):
     def _update_message_env(self, upnp_device):
         self._message_env['CACHE-CONTROL'] = self._message_expiry
         self._message_env['CONFIGID'] = upnp_device.config_id
-        self._message_env['DATE'] = formatdate()
+        self._message_env['DATE'] = formatdate(usegmt=True)
         self._message_env['LOCATION'] = "http://" + self.hostaddr + ":" \
             + str(upnp_device.web_server_port) + "/" + upnp_device.uuid \
             + "/description.xml"
@@ -216,8 +216,7 @@ class SSDPSender(BaseComponent):
         headers = ""
         for line in message.splitlines():
             headers = headers + line + "\r\n"
-        headers = headers + "Content-Length: 0\r\n"
-        headers = headers + "\r\n"
+        headers += "\r\n"
         self.fireEvent(Write(to, headers))
                     
     def _get_template(self, name):

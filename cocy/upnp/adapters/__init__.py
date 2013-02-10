@@ -25,24 +25,24 @@ from cocy.upnp.adapters.audio_video import RenderingController,\
 
 UPnPDeviceAdapter.add_adapter \
     (BinarySwitch, UPnPDeviceAdapter.DeviceProperties \
-     ("BinaryLight", 0.9, 1, 0,
+     ("BinaryLight", 0.9, 1, 1,
       [("SwitchPower:1", "SwitchPower", BinarySwitchPowerController)],
+      "_common_device_desc"))
+
+UPnPDeviceAdapter.add_adapter \
+    (MediaPlayer, UPnPDeviceAdapter.DeviceProperties \
+     ("MediaRenderer", 1.0, 1, 1,
+      [("RenderingControl:1.0", "RenderingControl", RenderingController),
+       ("ConnectionManager:1.0", "ConnectionManager",
+        ConnectionManagerController),
+       ("AVTransport:1.0", "AVTransport", AVTransportController)],
       "_common_device_desc"))
 
 #UPnPDeviceAdapter.add_adapter \
 #    (MediaPlayer, UPnPDeviceAdapter.DeviceProperties \
-#     ("MediaRenderer", 1.0, 1, 0,
-#      [("RenderingControl:1.0", "RenderingControl", RenderingController),
-#       ("ConnectionManager:1.0", "ConnectionManager",
+#     ("MediaRenderer", 2, 1, 1,
+#      [("RenderingControl:2", "RenderingControl", RenderingController),
+#       ("ConnectionManager:2", "ConnectionManager",
 #        ConnectionManagerController),
-#       ("AVTransport:1.0", "AVTransport", AVTransportController)],
+#       ("AVTransport:2", "AVTransport", AVTransportController)],
 #      "_common_device_desc"))
-
-UPnPDeviceAdapter.add_adapter \
-    (MediaPlayer, UPnPDeviceAdapter.DeviceProperties \
-     ("MediaRenderer", 2, 1, 0,
-      [("RenderingControl:2", "RenderingControl", RenderingController),
-       ("ConnectionManager:2", "ConnectionManager",
-        ConnectionManagerController),
-       ("AVTransport:2", "AVTransport", AVTransportController)],
-      "_common_device_desc"))

@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Cache-Control: max-age=%(CACHE-CONTROL)i
 Date: %(DATE)s
-Ext: 
+Ext:
 Location: %(LOCATION)s
 Server: %(SERVER)s
 ST: %(NT)s

@@ -41,7 +41,7 @@ class UPnPService(BaseController):
     _template_dir = os.path.join(os.path.dirname(__file__), "templates")
     _service_dir = os.path.join(os.path.dirname(__file__), "services")
 
-    def __init__(self, type_ver):
+    def __init__(self, config_id, type_ver):
         """
         Instances of this component are created from a service
         description that is selected by the given type and version.        
@@ -60,6 +60,7 @@ class UPnPService(BaseController):
         sfile = open(os.path.join(self._service_dir, 
                                   "%s_%s.xml" % (self._type, self._ver)))
         sd = ElementTree.parse(sfile).getroot()
+        sd.set("configId", str(config_id))
         # Some Android clients have problems with white spaces
         for el in sd.getiterator():
             if el.text:
