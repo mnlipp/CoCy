@@ -26,28 +26,23 @@ from cocy.upnp.adapters.audio_video import RenderingController,\
 UPnPDeviceAdapter.add_adapter \
     (BinarySwitch, UPnPDeviceAdapter.DeviceProperties \
      ("BinaryLight", 0.9, 1, 0,
-      [("SwitchPower:1", UPNP_SERVICE_ID_PREFIX + "SwitchPower:1",
-       BinarySwitchPowerController)],
-      "_common_device_desc"))
-
-UPnPDeviceAdapter.add_adapter \
-    (MediaPlayer, UPnPDeviceAdapter.DeviceProperties \
-     ("MediaRenderer", 1.0, 1, 0,
-      [("RenderingControl:1", UPNP_SERVICE_ID_PREFIX + "RenderingControl:1",
-        RenderingController),
-       ("ConnectionManager:1", UPNP_SERVICE_ID_PREFIX + "ConnectionManager:1",
-        ConnectionManagerController),
-       ("AVTransport:1", UPNP_SERVICE_ID_PREFIX + "AVTransport:1",
-        AVTransportController)],
+      [("SwitchPower:1", "SwitchPower", BinarySwitchPowerController)],
       "_common_device_desc"))
 
 #UPnPDeviceAdapter.add_adapter \
 #    (MediaPlayer, UPnPDeviceAdapter.DeviceProperties \
-#     ("MediaRenderer", 3, 1, 0,
-#      [("RenderingControl:3", UPNP_SERVICE_ID_PREFIX + "RenderingControl:3",
-#        RenderingController),
-#       ("ConnectionManager:3", UPNP_SERVICE_ID_PREFIX + "ConnectionManager:3",
+#     ("MediaRenderer", 1.0, 1, 0,
+#      [("RenderingControl:1.0", "RenderingControl", RenderingController),
+#       ("ConnectionManager:1.0", "ConnectionManager",
 #        ConnectionManagerController),
-#       ("AVTransport:3", UPNP_SERVICE_ID_PREFIX + "AVTransport:3",
-#        AVTransportController)],
+#       ("AVTransport:1.0", "AVTransport", AVTransportController)],
 #      "_common_device_desc"))
+
+UPnPDeviceAdapter.add_adapter \
+    (MediaPlayer, UPnPDeviceAdapter.DeviceProperties \
+     ("MediaRenderer", 2, 1, 0,
+      [("RenderingControl:2", "RenderingControl", RenderingController),
+       ("ConnectionManager:2", "ConnectionManager",
+        ConnectionManagerController),
+       ("AVTransport:2", "AVTransport", AVTransportController)],
+      "_common_device_desc"))

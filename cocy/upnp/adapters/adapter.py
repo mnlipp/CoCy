@@ -21,7 +21,8 @@ from circuits_bricks.misc.compquery import Queryable
 from uuid import uuid4
 from xml.etree.ElementTree import ElementTree, Element, SubElement, QName
 from circuits_bricks.web.dispatchers.dispatcher import ScopedChannel
-from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_EVENT_NS
+from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_EVENT_NS,\
+    UPNP_SERVICE_ID_PREFIX
 from circuits.web.controllers import Controller, expose, BaseController
 from util.misc import parseSoapRequest, splitQTag, buildSoapResponse
 from cocy.upnp.device_server import UPnPError
@@ -213,7 +214,7 @@ class UPnPDeviceController(Controller):
         SubElement(service, "{%s}serviceType" % SSDP_DEVICE_SCHEMA).text \
             = SSDP_SCHEMAS + ":service:" + service_type.type_ver
         SubElement(service, "{%s}serviceId" % SSDP_DEVICE_SCHEMA).text \
-            = service_id
+            = UPNP_SERVICE_ID_PREFIX + service_id
         SubElement(service, "{%s}SCPDURL" % SSDP_DEVICE_SCHEMA).text \
             = service_type.description_url
         SubElement(service, "{%s}controlURL" % SSDP_DEVICE_SCHEMA).text \

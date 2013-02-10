@@ -22,6 +22,8 @@ from cocy.providers import Manifest
 from cocy import providers
 from circuits.core.handlers import handler
 import time
+from circuits_bricks.core.timers import Timer
+from circuits.core.events import Event
 
 class DummyPlayer(providers.MediaPlayer):
     '''
@@ -32,17 +34,25 @@ class DummyPlayer(providers.MediaPlayer):
 
     def __init__(self):
         super(DummyPlayer, self).__init__(self.manifest)
-        self._play_started_at = None
+        self._timer = None
 
     @handler("play", override=True)
     def _on_play(self):
         super(DummyPlayer, self)._on_play()
         if self._source is None:
             return
-        self.current_track_duration = 300
-        self._play_started_at = time.time()
+        self.current_track_duration = 60
+        self._timer = Timer(self._current_track_duration, 
+                            Event.create("Stop")).register(self)
+
+    @handler("stop", override=True)
+    def _on_stop(self):
+        super(DummyPlayer, self)._on_stop()
+        if self._timer is not None:
+            self._timer.unregister()
+            self._timer = None
 
     def current_position(self):
-        if self._play_started_at is None:
+        if self._timer is None:
             return None
-        return time.time() - self._play_started_at
+        return self._current_track_duration - (self._timer.expiry - time.time())

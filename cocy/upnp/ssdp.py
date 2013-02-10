@@ -146,8 +146,8 @@ class SSDPSender(BaseComponent):
                     (upnp_device, "notify-result", inquirer)
             elif search_target.startswith(SSDP_SCHEMAS + ":service:"):
                 for service in upnp_device.services:
-                    if search_target \
-                        != SSDP_SCHEMAS + ":service:" + service.type_ver:
+                    if not search_target.startswith \
+                        (SSDP_SCHEMAS + ":service:" + service.type + ":"):
                         continue
                     self._send_service_message \
                         (upnp_device, service, "result", inquirer)

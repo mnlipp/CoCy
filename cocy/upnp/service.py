@@ -22,7 +22,6 @@ from circuits.web.controllers import BaseController, expose
 import os
 from circuits_bricks.web import ScopedChannel
 from xml.etree import ElementTree
-from cocy.upnp import COCY_SERVICE_EXT, UPNP_SERVICE_SCHEMA
 
 
 class UPnPService(BaseController):
@@ -61,7 +60,17 @@ class UPnPService(BaseController):
         sfile = open(os.path.join(self._service_dir, 
                                   "%s_%s.xml" % (self._type, self._ver)))
         sd = ElementTree.parse(sfile).getroot()
+        # Some Android clients have problems with white spaces
+        for el in sd.getiterator():
+            if el.text:
+                el.text = el.text.strip()
+            if el.tail:
+                el.tail = el.tail.strip()
         self._description = ElementTree.tostring(sd)
+
+    @property
+    def type(self):
+        return self._type
 
     @property
     def type_ver(self):

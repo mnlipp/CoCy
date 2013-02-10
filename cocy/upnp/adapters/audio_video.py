@@ -108,7 +108,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
         def _on_provider_updated_handler(self, provider, changed):
             if provider != self._provider:
                 return
-            self._on_provider_updated(changed)
+            self._map_changes(changed)
         self.addHandler(_on_provider_updated_handler)
 
     def _format_duration(self, duration):
@@ -116,10 +116,15 @@ class AVTransportController(UPnPCombinedEventsServiceController):
                                  int(int(duration) % 3600 / 60),
                                  int(duration) % 60)
 
-    def _on_provider_updated(self, changed):
+    def _map_changes(self, changed):
         for name, value in changed.items():
             if name == "source":
                 self.addChange("AVTransportURI", value)
+                self.addChange("CurrentTrackURI", value)
+                continue
+            if name == "source_meta_data":
+                self.addChange("AVTransportURIMetaData", value)
+                self.addChange("CurrentTrackMetaData", value)
                 continue
             if name == "state":
                 if value == "PLAYING":
@@ -127,6 +132,9 @@ class AVTransportController(UPnPCombinedEventsServiceController):
                     self.addChange("TransportState", self._transport_state)
                 elif value == "IDLE":
                     self._transport_state = "STOPPED"
+                    self.addChange("TransportState", self._transport_state)
+                elif value == "PAUSED":
+                    self._transport_state = "PAUSED_PLAYBACK"
                     self.addChange("TransportState", self._transport_state)
                 continue
         
@@ -143,7 +151,9 @@ class AVTransportController(UPnPCombinedEventsServiceController):
         return [("NrTracks", self._provider.tracks),
                 ("MediaDuration", "0:00:00"),
                 ("CurrentURI", self._provider.source),
-                ("CurrentURIMetaData", ""),
+                ("CurrentURIMetaData", "NOT_IMPLEMENTED" \
+                 if self._provider.source_meta_data is None \
+                 else self._provider.source_meta_data),
                 ("NextURI", "NOT_IMPLEMENTED"),
                 ("NextURIMetaData", "NOT_IMPLEMENTED"),
                 ("PlayMedium", "NONE"),
@@ -155,25 +165,26 @@ class AVTransportController(UPnPCombinedEventsServiceController):
         rel_pos = self._provider.current_position()
         info = [("Track", self._provider.current_track),
                 ("TrackDuration", "NOT_IMPLEMENTED" \
-                 if self._provider.current_track_duration is None\
+                 if self._provider.current_track_duration is None \
                  else self._format_duration \
                     (self._provider.current_track_duration)),
-                ("TrackMetaData", "NOT_IMPLEMENTED"),
+                ("TrackMetaData", "NOT_IMPLEMENTED" \
+                 if self._provider.source_meta_data is None \
+                 else self._provider.source_meta_data),
                 ("TrackURI", self._provider.source),
                 ("RelTime", "NOT_IMPLEMENTED" if rel_pos is None \
                  else self._format_duration(rel_pos)),
                 ("AbsTime", "NOT_IMPLEMENTED"),
                 ("RelCount", 2147483647),
                 ("AbsCount", 2147483647)]
-        self.fire(Log(logging.DEBUG, "GetPositioInfo called, returns " 
-                      + str(info)), "logger")
         return info
 
     @upnp_service
     def SetAVTransportURI(self, **kwargs):
         self.fire(Log(logging.DEBUG, 'AV Transport URI set to '
                       + kwargs["CurrentURI"]), "logger")
-        self.fire(Event.create("Load", kwargs["CurrentURI"]),
+        self.fire(Event.create("Load", kwargs["CurrentURI"], 
+                               kwargs["CurrentURIMetaData"]),
                   self.parent.provider.channel)
         return []
     
@@ -181,6 +192,13 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     def Play(self, **kwargs):
         self.fire(Log(logging.DEBUG, "Play called"), "logger")
         self.fire(Event.create("Play"),
+                  self.parent.provider.channel)
+        return []
+    
+    @upnp_service
+    def Pause(self, **kwargs):
+        self.fire(Log(logging.DEBUG, "Pause called"), "logger")
+        self.fire(Event.create("Pause"),
                   self.parent.provider.channel)
         return []
     

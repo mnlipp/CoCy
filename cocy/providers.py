@@ -204,6 +204,7 @@ class MediaPlayer(Provider):
         super(MediaPlayer, self).__init__(provider_manifest, **kwargs)        
         self._state = "IDLE"
         self._source = None
+        self._source_meta_data = None
         self._tracks = 0
         self._current_track = 0
         self._current_track_duration = None
@@ -255,21 +256,37 @@ class MediaPlayer(Provider):
     def source(self, uri):
         self._source = uri
 
+    @property
+    def source_meta_data(self):
+        return self._source_meta_data
+
+    @source_meta_data.setter
+    @evented(auto_publish=True)
+    def source_meta_data(self, meta_data):
+        self._source_meta_data = meta_data
+
     def current_position(self):
         return None
 
     @handler("load")
-    def _on_load(self, uri):
+    def _on_load(self, uri, meta_data):
         if self.source != uri:
             self.source = uri
             self.tracks = 1
             self.current_track = 1
+            self.source_meta_data = meta_data
 
     @handler("play")
     def _on_play(self):
         if self._source is None:
             return
         self.state = "PLAYING"
+        
+    @handler("pause")
+    def _on_pause(self):
+        if self._source is None:
+            return
+        self.state = "PAUSED"
         
     @handler("stop")
     def _on_stop(self):
