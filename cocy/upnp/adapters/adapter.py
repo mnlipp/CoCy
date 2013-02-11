@@ -263,6 +263,9 @@ class UPnPSubscription(BaseController):
             (self.parent, lambda x: ismethod(x) and hasattr(x, "_evented_by")):
             state_vars[name] = method()
         self._on_notification(state_vars)
+        self.fire(Log(logging.DEBUG, "Subscribtion for " + str(self._callbacks)
+                      + " on " + self.parent.notification_channel 
+                      + " created"), "logger")
 
     def _on_notification(self, state_vars):
         root = Element(QName(UPNP_EVENT_NS, "propertyset"))
@@ -289,11 +292,17 @@ class UPnPSubscription(BaseController):
     @handler("upnp_subs_end")
     def _on_subs_end(self):
         self.unregister()
+        self.fire(Log(logging.DEBUG, "Subscribtion for " + str(self._callbacks)
+                      + " on " + self.parent.notification_channel
+                      + " cancelled"), "logger")
 
     @handler("upnp_subs_renewal")
     def _on_renewal(self, timeout):
         self._expiry_timer.interval = timeout
         self._expiry_timer.reset()
+        self.fire(Log(logging.DEBUG, "Subscribtion for " + str(self._callbacks)
+                      + " on " + self.parent.notification_channel
+                      + " renewed"), "logger")
 
     @property
     def sid(self):
