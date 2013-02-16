@@ -38,6 +38,15 @@ from circuits_bricks.app.logger import Log
 import logging
 from util import misc
 
+class UPnPServiceError(Exception):
+    
+    def __init__(self, code):
+        self._code = code
+        
+    @property
+    def code(self):
+        return self._code
+    
 
 class UPnPDeviceAdapter(BaseComponent, Queryable):
     """
@@ -361,8 +370,8 @@ class UPnPServiceController(BaseController):
             return UPnPError(self.request, self.response, 401)
         try:
             out_args = method(**action_args)
-        except UPnPError as error:
-            return error
+        except UPnPServiceError as error:
+            return UPnPError(self.request, self.response, error.code)
         result = Element("{%s}%sResponse" % (action_ns, action))
         for name, value in out_args:
             arg = SubElement(result, name)

@@ -17,7 +17,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from cocy.upnp.adapters.adapter import upnp_service, UPnPServiceController,\
-    upnp_state, Notification
+    upnp_state, Notification, UPnPServiceError
 from circuits_bricks.app.logger import Log
 import logging
 from time import time
@@ -113,6 +113,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
                 return
             self._map_changes(changed)
         self.addHandler(_on_provider_updated_handler)
+        # @handler("end_of_media", channel=self._provider.channel)
 
     def _format_duration(self, duration):
         return "%d:%02d:%02d" % (int(duration / 3600), 
@@ -157,8 +158,8 @@ class AVTransportController(UPnPCombinedEventsServiceController):
                 ("CurrentURIMetaData", "NOT_IMPLEMENTED" \
                  if self._provider.source_meta_data is None \
                  else self._provider.source_meta_data),
-                ("NextURI", "NOT_IMPLEMENTED"),
-                ("NextURIMetaData", "NOT_IMPLEMENTED"),
+                ("NextURI", self._provider.source_next),
+                ("NextURIMetaData", self._provider.source_next_meta_data),
                 ("PlayMedium", "NONE"),
                 ("RecordMedium", "NOT_IMPLEMENTED"),
                 ("WriteStatus", "NOT_IMPLEMENTED")]
@@ -192,6 +193,15 @@ class AVTransportController(UPnPCombinedEventsServiceController):
         return []
     
     @upnp_service
+    def SetNextAVTransportURI(self, **kwargs):
+        self.fire(Log(logging.DEBUG, 'Next AV Transport URI set to '
+                      + kwargs["NextURI"]), "logger")
+        self.fire(Event.create("PrepareNext", kwargs["NextURI"], 
+                               kwargs["NextURIMetaData"]),
+                  self.parent.provider.channel)
+        return []
+    
+    @upnp_service
     def Play(self, **kwargs):
         self.fire(Log(logging.DEBUG, "Play called"), "logger")
         self.fire(Event.create("Play"),
@@ -209,6 +219,20 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     def Stop(self, **kwargs):
         self.fire(Log(logging.DEBUG, "Stop called"), "logger")
         self.fire(Event.create("Stop"),
+                  self.parent.provider.channel)
+        return []
+    
+    @upnp_service
+    def Seek(self, **kwargs):
+        unit = kwargs["Unit"]
+        if unit != "REL_TIME":
+            self.fire(Log(logging.DEBUG, "Seek called"), "logger")
+            raise UPnPServiceError(710)
+        target = kwargs["Target"]
+        self.fire(Log(logging.DEBUG, "Seek to " + target + " called"), "logger")
+        target = target.split(":")
+        target = int(target[0]) * 3600 + int(target[1]) * 60 + int(target[0])
+        self.fire(Event.create("Seek", target),
                   self.parent.provider.channel)
         return []
     

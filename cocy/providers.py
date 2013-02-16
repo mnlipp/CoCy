@@ -22,6 +22,8 @@ from circuits.core.components import BaseComponent
 from abc import ABCMeta
 from circuits.core.handlers import handler
 from circuits.core.events import Event
+from circuits_bricks.app.logger import Log
+import logging
 
 class Manifest(object):
     """
@@ -194,20 +196,29 @@ class BinarySwitch(Provider):
     def state(self, state):
         self._state = state
 
-
 class MediaPlayer(Provider):
     __metaclass__ = ABCMeta
     
     channel = "media_player"
+
+    class EndOfMedia(Event):
+        pass
     
     def __init__(self, provider_manifest, **kwargs):
         super(MediaPlayer, self).__init__(provider_manifest, **kwargs)        
         self._state = "IDLE"
         self._source = None
         self._source_meta_data = None
+        self._next_source = ""
+        self._next_source_meta_data = ""
         self._tracks = 0
         self._current_track = 0
         self._current_track_duration = None
+    
+    @handler("provider_updated")
+    def _on_provider_updated_handler(self, provider, changed):
+        self.fire(Log(logging.DEBUG, str(provider) + " changed: "
+                      + str(changed)), "logger")
     
     @property
     def tracks(self):
@@ -276,6 +287,12 @@ class MediaPlayer(Provider):
             self.current_track = 1
             self.source_meta_data = meta_data
 
+    @handler("prepare_next")
+    def _on_prepare_next(self, uri, meta_data):
+        if self._next_source != uri:
+            self._next_source = uri
+            self._next_source_meta_data = meta_data
+
     @handler("play")
     def _on_play(self):
         if self._source is None:
@@ -290,4 +307,8 @@ class MediaPlayer(Provider):
         
     @handler("stop")
     def _on_stop(self):
+        self.state = "IDLE"
+
+    @handler("end_of_media")
+    def _on_end_of_media(self):
         self.state = "IDLE"
