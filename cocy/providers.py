@@ -24,6 +24,7 @@ from circuits.core.handlers import handler
 from circuits.core.events import Event
 from circuits_bricks.app.logger import Log
 import logging
+from functools import wraps, update_wrapper
 
 class Manifest(object):
     """
@@ -175,6 +176,19 @@ def evented(*args, **kwargs):
             do_f(args[0], self, new_value, **kwargs)
         return decorator
         
+        
+def combine_events(f):
+    def wrapper(self, *args, **kwargs):
+        if getattr(self, "_auto_publish_pending", False):
+            return f(self, *args, **kwargs)
+        self._auto_publish_pending = True
+        result = f(self, *args, **kwargs)
+        self._publish_updates()
+        self._auto_publish_pending = False
+        return result
+    update_wrapper(wrapper, f)
+    return wrapper
+        
 
 class BinarySwitch(Provider):
     """
@@ -312,6 +326,7 @@ class MediaPlayer(Provider):
         return None
 
     @handler("load")
+    @combine_events
     def _on_load(self, uri, meta_data):
         self.source = uri
         self.source_meta_data = meta_data
@@ -319,6 +334,7 @@ class MediaPlayer(Provider):
         self.current_track = 1
 
     @handler("prepare_next")
+    @combine_events
     def _on_prepare_next(self, uri, meta_data):
         self.next_source = uri
         self.next_source_meta_data = meta_data
@@ -340,6 +356,7 @@ class MediaPlayer(Provider):
         self.state = "IDLE"
 
     @handler("end_of_media")
+    @combine_events
     def _on_end_of_media(self):
         if self.next_source:
             self.source = self.next_source 
