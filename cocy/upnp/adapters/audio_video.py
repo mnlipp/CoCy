@@ -26,7 +26,7 @@ from circuits.core.events import Event
 from circuits.core.handlers import handler
 from StringIO import StringIO
 from xml.etree.ElementTree import Element, QName, ElementTree, SubElement
-from cocy.upnp import UPNP_AVT_EVENT_NS
+from cocy.upnp import UPNP_AVT_EVENT_NS, UPNP_RCS_EVENT_NS
 from util import misc
 
 class UPnPCombinedEventsServiceController(UPnPServiceController):
@@ -51,7 +51,7 @@ class UPnPCombinedEventsServiceController(UPnPServiceController):
         return writer.getvalue()
 
     def addChange(self, variable, value):
-        self._changes[variable] = value
+        self._changes[variable] = str(value)
         if not self._updates_locked:
             self._send_changes()
 
@@ -70,19 +70,39 @@ class UPnPCombinedEventsServiceController(UPnPServiceController):
         self._send_changes()
 
 
-class RenderingController(UPnPServiceController):
-    
-    volume = 25
+class RenderingController(UPnPCombinedEventsServiceController):
     
     def __init__(self, adapter, device_path, service, service_id):
         super(RenderingController, self).__init__\
-            (adapter, device_path, service, service_id)
+            (adapter, device_path, service, service_id, UPNP_RCS_EVENT_NS)
+        self._provider = adapter.provider
         self._target = None
+        @handler("provider_updated", channel=self._provider.channel)
+        def _on_provider_updated_handler(self, provider, changed):
+            if provider != self._provider:
+                return
+            self._map_changes(changed)
+        self.addHandler(_on_provider_updated_handler)
 
+    def _map_changes(self, changed):
+        for name, value in changed.items():
+            if name == "volume":
+                self.addChange("Volume", str(int(value*100)))
+                continue
+        
     @upnp_service
     def GetVolume(self, **kwargs):
         self.fire(Log(logging.DEBUG, "GetVolume called"), "logger")
-        return [("CurrentVolume", str(self.volume))]
+        return [("CurrentVolume", str(int(self._provider.volume * 100)))]
+
+    @upnp_service
+    def SetVolume(self, **kwargs):
+        self.fire(Log(logging.DEBUG, 'SetVolume to '
+                      + kwargs["DesiredVolume"]), "logger")
+        self.fire(Event.create("SetVolume", 
+                               int(kwargs["DesiredVolume"]) / 100.0),
+                  self.parent.provider.channel)
+        return []
 
 
 class ConnectionManagerController(UPnPServiceController):
@@ -130,6 +150,16 @@ class AVTransportController(UPnPCombinedEventsServiceController):
                 self.addChange("AVTransportURIMetaData", value)
                 self.addChange("CurrentTrackMetaData", value)
                 continue
+            if name == "next_source":
+                self.addChange("NextAVTransportURI", value)
+                continue
+            if name == "next_source_meta_data":
+                self.addChange("NextAVTransportURIMetaData", value)
+                continue
+            if name == "current_track_duration":
+                self.addChange("CurrentTrackDuration", 
+                               self._format_duration(value))
+                continue
             if name == "state":
                 if value == "PLAYING":
                     self._transport_state = "PLAYING"
@@ -158,8 +188,8 @@ class AVTransportController(UPnPCombinedEventsServiceController):
                 ("CurrentURIMetaData", "NOT_IMPLEMENTED" \
                  if self._provider.source_meta_data is None \
                  else self._provider.source_meta_data),
-                ("NextURI", self._provider.source_next),
-                ("NextURIMetaData", self._provider.source_next_meta_data),
+                ("NextURI", self._provider.next_source),
+                ("NextURIMetaData", self._provider.next_source_meta_data),
                 ("PlayMedium", "NONE"),
                 ("RecordMedium", "NOT_IMPLEMENTED"),
                 ("WriteStatus", "NOT_IMPLEMENTED")]
@@ -167,6 +197,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     @upnp_service
     def GetPositionInfo(self, **kwargs):
         rel_pos = self._provider.current_position()
+        self.fire(Log(logging.DEBUG, "GetPositionInfo called"), "logger")
         info = [("Track", self._provider.current_track),
                 ("TrackDuration", "NOT_IMPLEMENTED" \
                  if self._provider.current_track_duration is None \
@@ -231,7 +262,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
         target = kwargs["Target"]
         self.fire(Log(logging.DEBUG, "Seek to " + target + " called"), "logger")
         target = target.split(":")
-        target = int(target[0]) * 3600 + int(target[1]) * 60 + int(target[0])
+        target = int(target[0]) * 3600 + int(target[1]) * 60 + int(target[2])
         self.fire(Event.create("Seek", target),
                   self.parent.provider.channel)
         return []

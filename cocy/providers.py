@@ -143,7 +143,7 @@ class Provider(BaseComponent):
     def _publish_updates(self):
         if len(self._provider_changed) > 0:
             self.fire(ProviderUpdated(self, self._provider_changed))
-        self._provider_changed = dict()
+            self._provider_changed = dict()
 
 
 def evented(*args, **kwargs):
@@ -214,11 +214,25 @@ class MediaPlayer(Provider):
         self._tracks = 0
         self._current_track = 0
         self._current_track_duration = None
+        self._volume = 0.25
     
     @handler("provider_updated")
     def _on_provider_updated_handler(self, provider, changed):
         self.fire(Log(logging.DEBUG, str(provider) + " changed: "
                       + str(changed)), "logger")
+    
+    @property
+    def volume(self):
+        return self._volume
+
+    @volume.setter
+    @evented(auto_publish=True)
+    def volume(self, volume):
+        self._volume = volume
+    
+    @handler("set_volume")
+    def _on_set_volume(self, volume):
+        self.volume = volume
     
     @property
     def tracks(self):
@@ -276,32 +290,48 @@ class MediaPlayer(Provider):
     def source_meta_data(self, meta_data):
         self._source_meta_data = meta_data
 
+    @property
+    def next_source(self):
+        return self._next_source
+
+    @next_source.setter
+    @evented(auto_publish=True)
+    def next_source(self, uri):
+        self._next_source = uri
+
+    @property
+    def next_source_meta_data(self):
+        return self._next_source_meta_data
+
+    @next_source_meta_data.setter
+    @evented(auto_publish=True)
+    def next_source_meta_data(self, meta_data):
+        self._next_source_meta_data = meta_data
+
     def current_position(self):
         return None
 
     @handler("load")
     def _on_load(self, uri, meta_data):
-        if self.source != uri:
-            self.source = uri
-            self.tracks = 1
-            self.current_track = 1
-            self.source_meta_data = meta_data
+        self.source = uri
+        self.source_meta_data = meta_data
+        self.tracks = 1
+        self.current_track = 1
 
     @handler("prepare_next")
     def _on_prepare_next(self, uri, meta_data):
-        if self._next_source != uri:
-            self._next_source = uri
-            self._next_source_meta_data = meta_data
+        self.next_source = uri
+        self.next_source_meta_data = meta_data
 
     @handler("play")
     def _on_play(self):
-        if self._source is None:
+        if self.source is None:
             return
         self.state = "PLAYING"
         
     @handler("pause")
     def _on_pause(self):
-        if self._source is None:
+        if self.source is None:
             return
         self.state = "PAUSED"
         
@@ -311,4 +341,11 @@ class MediaPlayer(Provider):
 
     @handler("end_of_media")
     def _on_end_of_media(self):
+        if self.next_source:
+            self.source = self.next_source 
+            self.source_meta_data = self.next_source_meta_data
+            self.next_source = ""
+            self.next_source_meta_data = ""
+            self.state = "PLAYING"
+            return
         self.state = "IDLE"

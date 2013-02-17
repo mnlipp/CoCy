@@ -271,7 +271,8 @@ class UPnPSubscription(BaseController):
         for name, method in getmembers \
             (self.parent, lambda x: ismethod(x) and hasattr(x, "_evented_by")):
             state_vars[name] = method()
-        self._on_notification(state_vars)
+        if len(state_vars) > 0:
+            self._on_notification(state_vars)
         self.fire(Log(logging.DEBUG, "Subscribtion for " + str(self._callbacks)
                       + " on " + self.parent.notification_channel 
                       + " created"), "logger")
@@ -290,6 +291,9 @@ class UPnPSubscription(BaseController):
         writer.write("<?xml version='1.0' encoding='utf-8'?>")
         ElementTree(root).write(writer, encoding="utf-8")
         body = writer.getvalue()
+        self.fire(Log(logging.DEBUG, "Notifying " 
+                      + self._callbacks[self._used_callback]
+                      + " about " + str(state_vars)), "logger")
         self.fire(Request("NOTIFY", self._callbacks[self._used_callback], body,
                           { "CONTENT-TYPE": "text/xml; charset=\"utf-8\"",
                             "NT": "upnp:event",
