@@ -18,12 +18,11 @@
 
 .. codeauthor:: mnl
 """
-from cocy.providers import Manifest
+from cocy.providers import Manifest, MediaPlayer
 from cocy import providers
 from circuits.core.handlers import handler
-import time
 from circuits_bricks.core.timers import Timer
-from circuits.core.events import Event
+import time
 
 class DummyPlayer(providers.MediaPlayer):
     '''
@@ -36,21 +35,19 @@ class DummyPlayer(providers.MediaPlayer):
         super(DummyPlayer, self).__init__(self.manifest)
         self._timer = None
 
-    @handler("play", override=True)
-    def _on_play(self):
-        super(DummyPlayer, self)._on_play()
-        if self._source is None:
-            return
-        self.current_track_duration = 60
-        self._timer = Timer(self._current_track_duration, 
-                            Event.create("Stop")).register(self)
-
-    @handler("stop", override=True)
-    def _on_stop(self):
-        super(DummyPlayer, self)._on_stop()
-        if self._timer is not None:
-            self._timer.unregister()
-            self._timer = None
+    @handler("provider_updated")
+    def _on_provider_updated_handler(self, provider, changed):
+        if "state" in changed:
+            state = changed["state"]
+            if state == "PLAYING":
+                self.current_track_duration = 60
+                if self._timer:
+                    self._timer.unregister()
+                self._timer = Timer(self.current_track_duration, 
+                                    MediaPlayer.EndOfMedia()).register(self)
+            elif state == "IDLE":
+                if self._timer:
+                    self._timer.unregister()
 
     def current_position(self):
         if self._timer is None:
