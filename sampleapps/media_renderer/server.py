@@ -18,20 +18,14 @@
 
 .. codeauthor:: mnl
 """
-from util.python26fix import install_python26_fix
-install_python26_fix()
-from media_renderer.renderer import DummyPlayer
 
-from cocy.portlets.portlets_factory import PortletsFactory
-from circuits_minpor import Portal
-from cocy.upnp.device_directory import UPnPDeviceDirectory
 from circuits.core.debugger import Debugger
 from circuits.core.components import Component
 import sys
-from circuits.web.servers import BaseServer
 from cocy.upnp import UPnPDeviceServer
 import os
 from circuits_bricks.app import Application
+from media_renderer.renderer import DummyPlayer
 
 CONFIG = {
     "logging": {

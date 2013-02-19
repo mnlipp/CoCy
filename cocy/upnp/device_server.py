@@ -128,7 +128,7 @@ class UPnPDeviceServer(BaseComponent):
 
     @property
     def providers(self):
-        return [device.provider for device in self._devices]
+        return [device.provider for device in getattr(self, "_devices", [])]
 
 
 class UPnPError(HTTPError):

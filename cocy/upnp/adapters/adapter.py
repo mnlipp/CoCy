@@ -168,6 +168,8 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
         return self._services
 
     def __getattr__(self, name):
+        if not hasattr(self, "_props"):
+            return None
         if not name.startswith("_") and hasattr(self._props, name):
             return getattr(self._props, name, None)
         raise AttributeError
@@ -338,7 +340,7 @@ class UPnPServiceController(BaseController):
 
     @property
     def notification_channel(self):
-        return self._notification_channel
+        return getattr(self, "_notification_channel", None)
 
     @handler("registered")
     def _on_registered(self, component, parent):

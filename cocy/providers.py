@@ -131,7 +131,7 @@ class Provider(BaseComponent):
         
         :rtype: :class:`cocy.providers.Manifest`
         """
-        return self._provider_manifest
+        return getattr(self, "_provider_manifest", None)
 
     @handler("provider_query")
     def _on_provider_query(self, event):
@@ -237,7 +237,7 @@ class MediaPlayer(Provider):
     
     @property
     def volume(self):
-        return self._volume
+        return getattr(self, "_volume", 0.25)
 
     @volume.setter
     @evented(auto_publish=True)
@@ -250,7 +250,7 @@ class MediaPlayer(Provider):
     
     @property
     def tracks(self):
-        return self._tracks
+        return getattr(self, "_tracks", 0)
     
     @tracks.setter
     @evented(auto_publish=True)
@@ -261,7 +261,7 @@ class MediaPlayer(Provider):
 
     @property
     def current_track(self):
-        return self._current_track
+        return getattr(self, "_current_track", 0)
     
     @current_track.setter
     @evented(auto_publish=True)
@@ -270,7 +270,7 @@ class MediaPlayer(Provider):
 
     @property
     def current_track_duration(self):
-        return self._current_track_duration
+        return getattr(self, "_current_track_duration", None)
     
     @current_track_duration.setter
     @evented(auto_publish=True)
@@ -279,7 +279,7 @@ class MediaPlayer(Provider):
 
     @property
     def state(self):
-        return self._state
+        return getattr(self, "_state", "IDLE")
 
     @state.setter
     @evented(auto_publish=True)
@@ -288,7 +288,7 @@ class MediaPlayer(Provider):
 
     @property
     def source(self):
-        return self._source
+        return getattr(self, "_source", None)
 
     @source.setter
     @evented(auto_publish=True)
@@ -297,7 +297,7 @@ class MediaPlayer(Provider):
 
     @property
     def source_meta_data(self):
-        return self._source_meta_data
+        return getattr(self, "_source_meta_data", None)
 
     @source_meta_data.setter
     @evented(auto_publish=True)
@@ -306,7 +306,7 @@ class MediaPlayer(Provider):
 
     @property
     def next_source(self):
-        return self._next_source
+        return getattr(self, "_next_source", None)
 
     @next_source.setter
     @evented(auto_publish=True)
@@ -315,7 +315,7 @@ class MediaPlayer(Provider):
 
     @property
     def next_source_meta_data(self):
-        return self._next_source_meta_data
+        return getattr(self, "_next_source_meta_data", None)
 
     @next_source_meta_data.setter
     @evented(auto_publish=True)

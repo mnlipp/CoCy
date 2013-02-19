@@ -43,5 +43,5 @@ setup(
                                     'templates/themes/default/*'],
                   'cocy.upnp': ['services/*.xml',
                                 'templates/*']},
-    install_requires = ['rbtranslations', 'circuits-bricks'],
+    install_requires = ['Tenjin', 'rbtranslations', 'circuits-bricks'],
 )
