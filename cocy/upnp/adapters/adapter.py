@@ -79,6 +79,7 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
 
     _service_registry = dict()
     _mapping = dict()
+    _props = DeviceProperties("Undefined", 0, 0, 0, [], None)
     """
     This dictionary maps the defined :class:`cocy.providers.Provider`
     classes to UPnP device properties.
@@ -145,19 +146,19 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
 
     @property
     def provider(self):
-        return self._provider
+        return getattr(self, "_provider", None)
 
     @property
     def path(self):
-        return self._path
+        return getattr(self, "_path", None)
 
     @property
     def web_server_port(self):
-        return self._web_server_port
+        return getattr(self, "_web_server_port", None)
 
     @property
     def uuid(self):
-        return self._uuid
+        return getattr(self, "_uuid", None)
 
     @property
     def root_device(self):
@@ -165,18 +166,16 @@ class UPnPDeviceAdapter(BaseComponent, Queryable):
 
     @property
     def services(self):
-        return self._services
+        return getattr(self, "_services", None)
 
     def __getattr__(self, name):
-        if not hasattr(self, "_props"):
-            return None
         if not name.startswith("_") and hasattr(self._props, name):
             return getattr(self._props, name, None)
-        raise AttributeError
+        raise AttributeError("No " + name + " in " + self.__class__.__name__)
 
     @property
     def type_ver(self):
-        return "%s:%s" % (self._props.type, str(self._props.ver))
+        return "%s:%s" % (str(self.type), str(self.ver))
 
 
 class UPnPDeviceController(Controller):
