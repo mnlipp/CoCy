@@ -22,8 +22,8 @@ from circuits.web.controllers import BaseController, expose
 import os
 from circuits_bricks.web import ScopedChannel
 from xml.etree import ElementTree
-from util import misc
 from cocy.upnp import UPNP_SERVICE_SCHEMA
+from cocy.misc import set_ns_prefixes
 
 
 class UPnPService(BaseController):
@@ -69,7 +69,7 @@ class UPnPService(BaseController):
                 el.text = el.text.strip()
             if el.tail:
                 el.tail = el.tail.strip()
-        misc.set_ns_prefixes(sd, { "": UPNP_SERVICE_SCHEMA })
+        set_ns_prefixes(sd, { "": UPNP_SERVICE_SCHEMA })
         self._description = ElementTree.tostring(sd)
 
     @property

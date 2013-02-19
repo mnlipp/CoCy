@@ -24,7 +24,7 @@ from circuits_bricks.web.dispatchers.dispatcher import ScopedChannel
 from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_EVENT_NS,\
     UPNP_SERVICE_ID_PREFIX, SERVER_HELLO
 from circuits.web.controllers import Controller, expose, BaseController
-from util.misc import parseSoapRequest, splitQTag, buildSoapResponse
+from cocy.misc import parseSoapRequest, splitQTag, buildSoapResponse
 from cocy.upnp.device_server import UPnPError
 from email.utils import formatdate
 from circuits_bricks.core.timers import Timer
@@ -36,7 +36,7 @@ from circuits_bricks.web.client import Client, Request
 from cocy.upnp.service import UPnPService
 from circuits_bricks.app.logger import Log
 import logging
-from util import misc
+from cocy import misc
 
 class UPnPServiceError(Exception):
     

@@ -31,10 +31,10 @@ from cocy.providers import Provider
 import anydbm
 import os
 from xml.etree.ElementTree import Element, QName, SubElement
-import soaplib
 from cocy.upnp import UPNP_CONTROL_NS
-from util.misc import buildSoapResponse
 from circuits.web.errors import HTTPError
+from cocy.soaplib import ns_soap_env
+from cocy.misc import buildSoapResponse
 
 
 class DeviceAvailable(Event):
@@ -147,10 +147,10 @@ class UPnPError(HTTPError):
         super(UPnPError, self).__init__(request, response, 500)
         if error_desc is None:
             error_desc = self._error_descs.get(error_code, "Unknown")
-        result = Element(QName(soaplib.ns_soap_env, "Fault"))
-        SubElement(result, QName(soaplib.ns_soap_env, "faultcode")).text \
-            = str(QName(soaplib.ns_soap_env, "Client"))
-        SubElement(result, QName(soaplib.ns_soap_env, "faultstring")).text \
+        result = Element(QName(ns_soap_env, "Fault"))
+        SubElement(result, QName(ns_soap_env, "faultcode")).text \
+            = str(QName(ns_soap_env, "Client"))
+        SubElement(result, QName(ns_soap_env, "faultstring")).text \
             = "UPnPError"
         detail = SubElement(result, "detail")
         upnp_error = SubElement(detail, QName(UPNP_CONTROL_NS, "UPnPError"))

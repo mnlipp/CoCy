@@ -27,7 +27,7 @@ from circuits.core.handlers import handler
 from StringIO import StringIO
 from xml.etree.ElementTree import Element, QName, ElementTree, SubElement
 from cocy.upnp import UPNP_AVT_EVENT_NS, UPNP_RCS_EVENT_NS
-from util import misc
+from cocy import misc
 
 class UPnPCombinedEventsServiceController(UPnPServiceController):
     

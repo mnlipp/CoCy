@@ -5,7 +5,6 @@
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
 <path>/CoCy/unittests</path>
 <path>/CoCy/tests</path>
-<path>/CoCy/lib</path>
 <path>/CoCy/sampleapps</path>
 <path>/CoCy</path>
 </pydev_pathproperty>
