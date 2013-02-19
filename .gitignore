@@ -1,2 +1,5 @@
 *.pyc
 *.pyhtml.cache
+/dist
+/build
+/cocy.egg-info
