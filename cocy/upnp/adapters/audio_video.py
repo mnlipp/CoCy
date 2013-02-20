@@ -158,7 +158,8 @@ class AVTransportController(UPnPCombinedEventsServiceController):
                 continue
             if name == "current_track_duration":
                 self.addChange("CurrentTrackDuration", 
-                               self._format_duration(value))
+                               "NOT_IMPLEMENTED" if value is None \
+                               else self._format_duration(value))
                 continue
             if name == "state":
                 if value == "PLAYING":
