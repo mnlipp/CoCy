@@ -171,6 +171,9 @@ class AVTransportController(UPnPCombinedEventsServiceController):
                 elif value == "PAUSED":
                     self._transport_state = "PAUSED_PLAYBACK"
                     self.addChange("TransportState", self._transport_state)
+                elif value == "TRANSITIONING":
+                    self._transport_state = "TRANSITIONING"
+                    self.addChange("TransportState", self._transport_state)
                 continue
         
     @upnp_service
@@ -256,6 +259,9 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     
     @upnp_service
     def Seek(self, **kwargs):
+        if not (self._transport_state == "PLAYING" 
+                or self._transport_state == "STOPPED"):
+            raise UPnPServiceError(701) 
         unit = kwargs["Unit"]
         if unit != "REL_TIME":
             self.fire(Log(logging.DEBUG, "Seek called"), "logger")
