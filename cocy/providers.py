@@ -363,6 +363,5 @@ class MediaPlayer(Provider):
             self.source_meta_data = self.next_source_meta_data
             self.next_source = ""
             self.next_source_meta_data = ""
-            self.state = "PLAYING"
             return
         self.state = "IDLE"
