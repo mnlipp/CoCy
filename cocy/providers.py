@@ -359,9 +359,11 @@ class MediaPlayer(Provider):
     @combine_events
     def _on_end_of_media(self):
         if self.next_source:
+            if self.next_source == self.source:
+                # Make sure this is fired as change, even if next is current
+                self.source = None
+                self.source_meta_data = None
             self.source = self.next_source 
             self.source_meta_data = self.next_source_meta_data
-            self.next_source = ""
-            self.next_source_meta_data = ""
             return
         self.state = "IDLE"
