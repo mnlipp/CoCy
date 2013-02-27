@@ -4,6 +4,7 @@
 .. _circuits framework: http://packages.python.org/circuits
 .. _circuits-bricks: http://pypi.python.org/pypi/circuits-bricks
 .. _rbtranslations: http://pypi.python.org/pypi/rbtranslations
+.. _cocy Page on PyPI: http://pypi.python.org/pypi/cocy
 .. _Package Documentation: http://packages.python.org/cocy
 .. _github: https://github.com/mnlipp/CoCy
 .. _issue tracker: https://github.com/mnlipp/CoCy/issues 
@@ -23,8 +24,8 @@ Requirements
 
 CoCy depends on the `Python Standard Library`_,
 the `circuits framework`_ in the 2.1 version,
-the general purpose `circuits_bricks` components and the
-`rbtranslations` library. 
+the general purpose `circuits-bricks`_ components and the
+`rbtranslations`_ library. 
 
 Installation
 ------------

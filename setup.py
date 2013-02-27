@@ -35,7 +35,6 @@ setup(
               'cocy.soaplib.util',
               'sampleapps',
               'sampleapps.binary_light',
-              'sampleapps.media_renderer',
-              'tests'],
+              'sampleapps.media_renderer'],
    install_requires = ['Tenjin', 'rbtranslations', 'circuits-bricks'],
 )
