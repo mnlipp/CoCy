@@ -124,25 +124,26 @@ class UPnPRootDevice(BaseComponent):
 
     @property
     def usn(self):
-        return self._usn
+        return getattr(self, "_usn", None)
         
     @property
     def location(self):
-        return self._location
+        return getattr(self, "_location", None)
 
     @property
     def ready(self):
-        return self._ready
+        return getattr(self, "_ready", None)
 
     @property
     def friendly_name(self):
-        return self._friendly_name
+        return getattr(self, "_friendly_name", None)
 
     @property
     def icons(self):
-        return copy(self._icons)
+        return copy(getattr(self, "_icons", None))
     
     @property
     def valid_until(self):
-        return self._expiry_timer._eTime
+        return self._expiry_timer._eTime \
+            if hasattr(self, "_expiry_timer") else None
         
