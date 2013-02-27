@@ -15,21 +15,26 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-=====================
-Configuration Support
-=====================
+.. CoCy documentation master file, created by
+   sphinx-quickstart on Mon Sep 19 15:33:47 2011.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
 
-A common task when programming an application is storing configuration
-values. Python already comes with the package :mod:`ConfigParser` that
-stores configurations in the ini-file format.
+Welcome to CoCy's documentation!
+================================
 
-The component ``Configuration`` uses that package to provide configuration
-information as appropriate for an event based system.
+Contents:
 
-.. autoclass:: util.config.Configuration
+.. toctree::
+   :maxdepth: 2
 
-The events used by the ``Configuration`` component are listed below.
+   providers
+   upnp/index
 
-.. autoclass:: util.config.ConfigValue
+Indices and tables
+==================
 
-.. autoclass:: util.config.EmitConfig
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
