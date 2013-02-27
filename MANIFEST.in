@@ -1,0 +1,6 @@
+include pypi-overview.rst
+recursive-include cocy/portlets/templates *.properties
+recursive-include cocy/portlets/templates *.pyhtml
+recursive-include cocy/portlets/templates/themes/default *
+recursive-include cocy/upnp/services/ *.xml
+recursive-include cocy/upnp/templates/ *

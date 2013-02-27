@@ -20,7 +20,6 @@ setup(
     keywords = "circuits UPnP",
     url = "http://packages.python.org/cocy",
     long_description=read('pypi-overview.rst'),
-    data_files=[('', ['pypi-overview.rst'])],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: GNU General Public License (GPL)",
@@ -38,10 +37,5 @@ setup(
               'sampleapps.binary_light',
               'sampleapps.media_renderer',
               'tests'],
-    package_data={'cocy.portlets': ['templates/*.properties',
-                                    'templates/*.pyhtml',
-                                    'templates/themes/default/*'],
-                  'cocy.upnp': ['services/*.xml',
-                                'templates/*']},
-    install_requires = ['Tenjin', 'rbtranslations', 'circuits-bricks']
+   install_requires = ['Tenjin', 'rbtranslations', 'circuits-bricks'],
 )
