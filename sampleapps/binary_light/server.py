@@ -18,9 +18,6 @@
 
 .. codeauthor:: mnl
 """
-from util.python26fix import install_python26_fix
-install_python26_fix()
-
 from binary_light.portlet import BinaryLightPortlet
 from binary_light.misc import BinaryLight
 from cocy.portlets.portlets_factory import PortletsFactory
