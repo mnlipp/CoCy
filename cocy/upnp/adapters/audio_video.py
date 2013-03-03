@@ -50,24 +50,24 @@ class UPnPCombinedEventsServiceController(UPnPServiceController):
         ElementTree(root).write(writer, encoding="utf-8")
         return writer.getvalue()
 
-    def addChange(self, variable, value):
+    def addChange(self, variable, value, auto_flush=True):
         self._changes[variable] = str(value)
-        if not self._updates_locked:
-            self._send_changes()
+        if auto_flush:
+            self.flushChanges()
 
-    def _send_changes(self):
-        if len(self._changes) == 0:
+    def flushChanges(self):
+        if self._updates_locked or len(self._changes) == 0:
             return
+        self._updates_locked = True
         self.fire(Notification({ "LastChange": self.LastChange() }),
                   self.notification_channel)
         self._changes.clear()
         Timer(0.2, Event.create("UnlockUpdates"), self).register(self)
-        self._updates_locked = True
 
     @handler("unlock_updates")
     def _on_unlock_updates(self, *args):
         self._updates_locked = False
-        self._send_changes()
+        self.flushChanges()
 
 
 class RenderingController(UPnPCombinedEventsServiceController):
@@ -156,38 +156,46 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     def _map_changes(self, changed):
         for name, value in changed.items():
             if name == "source":
-                self.addChange("AVTransportURI", value)
-                self.addChange("CurrentTrackURI", value)
+                self.addChange("AVTransportURI", value, auto_flush=False)
+                self.addChange("CurrentTrackURI", value, auto_flush=False)
                 continue
             if name == "source_meta_data":
-                self.addChange("AVTransportURIMetaData", value)
-                self.addChange("CurrentTrackMetaData", value)
+                self.addChange("AVTransportURIMetaData", value, 
+                               auto_flush=False)
+                self.addChange("CurrentTrackMetaData", value, auto_flush=False)
                 continue
             if name == "next_source":
-                self.addChange("NextAVTransportURI", value)
+                self.addChange("NextAVTransportURI", value, auto_flush=False)
                 continue
             if name == "next_source_meta_data":
-                self.addChange("NextAVTransportURIMetaData", value)
+                self.addChange("NextAVTransportURIMetaData", value, 
+                               auto_flush=False)
                 continue
             if name == "current_track_duration":
                 self.addChange("CurrentTrackDuration", 
                                "NOT_IMPLEMENTED" if value is None \
-                               else self._format_duration(value))
+                               else self._format_duration(value), 
+                               auto_flush=False)
                 continue
             if name == "state":
                 if value == "PLAYING":
                     self._transport_state = "PLAYING"
-                    self.addChange("TransportState", self._transport_state)
+                    self.addChange("TransportState", self._transport_state, 
+                                   auto_flush=False)
                 elif value == "IDLE":
                     self._transport_state = "STOPPED"
-                    self.addChange("TransportState", self._transport_state)
+                    self.addChange("TransportState", self._transport_state, 
+                                   auto_flush=False)
                 elif value == "PAUSED":
                     self._transport_state = "PAUSED_PLAYBACK"
-                    self.addChange("TransportState", self._transport_state)
+                    self.addChange("TransportState", self._transport_state, 
+                                   auto_flush=False)
                 elif value == "TRANSITIONING":
                     self._transport_state = "TRANSITIONING"
-                    self.addChange("TransportState", self._transport_state)
+                    self.addChange("TransportState", self._transport_state, 
+                                   auto_flush=False)
                 continue
+        self.flushChanges()
         
     @upnp_service
     def GetTransportInfo(self, **kwargs):
