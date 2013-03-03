@@ -31,11 +31,11 @@ UPnPDeviceAdapter.add_adapter \
 
 UPnPDeviceAdapter.add_adapter \
     (MediaPlayer, UPnPDeviceAdapter.DeviceProperties \
-     ("MediaRenderer", 1.0, 1, 1,
-      [("RenderingControl:1.0", "RenderingControl", RenderingController),
-       ("ConnectionManager:1.0", "ConnectionManager",
+     ("MediaRenderer", 1, 1, 1,
+      [("RenderingControl:1", "RenderingControl", RenderingController),
+       ("ConnectionManager:1", "ConnectionManager",
         ConnectionManagerController),
-       ("AVTransport:1.0", "AVTransport", AVTransportController)],
+       ("AVTransport:1", "AVTransport", AVTransportController)],
       "_common_device_desc"))
 
 #UPnPDeviceAdapter.add_adapter \
