@@ -104,6 +104,9 @@ class RenderingController(UPnPCombinedEventsServiceController):
                   self.parent.provider.channel)
         return []
 
+    @upnp_service
+    def GetVolumeDBRange(self, **kwargs):
+        return [("MinValue", -85*256), ("MaxValue", 0)]
 
 class ConnectionManagerController(UPnPServiceController):
     
@@ -112,11 +115,21 @@ class ConnectionManagerController(UPnPServiceController):
             (adapter, device_path, service, service_id)
         self._target = None
 
+    @upnp_state
+    def CurrentConnectionIDs(self):
+        return 0
+
     @upnp_service
     def GetProtocolInfo(self, **kwargs):
         self.fire(Log(logging.DEBUG, "GetProtocolInfo called"), "logger")
         return [("Source", ""),
                 ("Sink", "http-get:*:audio/mpeg:*")]
+
+    @upnp_service
+    def GetCurrentConnectionIDs(self, **kwargs):
+        self.fire(Log(logging.DEBUG, "GetCurrentConnectionIDs called"),
+                  "logger")
+        return [("GetCurrentConnectionIDs", self.CurrentConnectionIDs())]
 
 
 class AVTransportController(UPnPCombinedEventsServiceController):
