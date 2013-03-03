@@ -176,6 +176,10 @@ class AVTransportController(UPnPCombinedEventsServiceController):
                                "NOT_IMPLEMENTED" if value is None \
                                else self._format_duration(value), 
                                auto_flush=False)
+                self.addChange("CurrentMediaDuration", 
+                               "NOT_IMPLEMENTED" if value is None \
+                               else self._format_duration(value), 
+                               auto_flush=False)
                 continue
             if name == "state":
                 if value == "PLAYING":

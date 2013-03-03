@@ -227,7 +227,7 @@ class MediaPlayer(Provider):
         self._next_source_meta_data = ""
         self._tracks = 0
         self._current_track = 0
-        self._current_track_duration = None
+        self._current_track_duration = 0
         self._volume = 0.25
     
     @handler("provider_updated")
@@ -358,6 +358,7 @@ class MediaPlayer(Provider):
     @handler("end_of_media")
     @combine_events
     def _on_end_of_media(self):
+        self.current_track_duration = 0
         if self.next_source:
             if self.next_source == self.source:
                 # Make sure this is fired as change, even if next is current
