@@ -208,13 +208,18 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     def GetMediaInfo(self, **kwargs):
         self.fire(Log(logging.DEBUG, "GetMediaInfo called"), "logger")
         return [("NrTracks", self._provider.tracks),
-                ("MediaDuration", "0:00:00"),
+                ("MediaDuration", "NOT_IMPLEMENTED" \
+                 if self._provider.current_track_duration is None \
+                 else self._format_duration \
+                    (self._provider.current_track_duration)),
                 ("CurrentURI", self._provider.source),
                 ("CurrentURIMetaData", "NOT_IMPLEMENTED" \
                  if self._provider.source_meta_data is None \
                  else self._provider.source_meta_data),
                 ("NextURI", self._provider.next_source),
-                ("NextURIMetaData", self._provider.next_source_meta_data),
+                ("NextURIMetaData", "NOT_IMPLEMENTED" \
+                 if self._provider.next_source_meta_data is None \
+                 else self._provider.next_source_meta_data),
                 ("PlayMedium", "NONE"),
                 ("RecordMedium", "NOT_IMPLEMENTED"),
                 ("WriteStatus", "NOT_IMPLEMENTED")]
