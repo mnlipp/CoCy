@@ -1,4 +1,5 @@
 include pypi-overview.rst
+include ez_setup.py
 recursive-include cocy/portlets/templates *.properties
 recursive-include cocy/portlets/templates *.pyhtml
 recursive-include cocy/portlets/templates/themes/default *

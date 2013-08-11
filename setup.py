@@ -1,3 +1,6 @@
+from ez_setup import use_setuptools
+use_setuptools()
+    
 import os
 from setuptools import setup
 
@@ -8,11 +11,9 @@ from setuptools import setup
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-import cocy
-
 setup(
     name = "cocy",
-    version = cocy.__version__,
+    version = "0.1.6",
     author = "Michael N. Lipp",
     author_email = "mnl@mnl.de",
     description = ("A components library for UPnP."),
@@ -42,5 +43,5 @@ setup(
                                     'templates/themes/default/*'],
                   'cocy.upnp': ['services/*.xml',
                                 'templates/*']},
-   install_requires = ['Tenjin', 'rbtranslations', 'circuits-bricks'],
+   install_requires = ['circuits == 2.1.0', 'Tenjin', 'rbtranslations', 'circuits-bricks'],
 )
