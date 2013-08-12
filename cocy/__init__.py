@@ -21,6 +21,6 @@
 
 from providers import Provider, BinarySwitch
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 
 __all__ = ["Provider", "BinarySwitch"]
