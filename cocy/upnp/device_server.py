@@ -35,6 +35,8 @@ from cocy.upnp import UPNP_CONTROL_NS
 from circuits.web.errors import HTTPError
 from cocy.soaplib import ns_soap_env
 from cocy.misc import buildSoapResponse
+import logging
+from circuits_bricks.app.logger import Log
 
 
 class DeviceAvailable(Event):
@@ -79,7 +81,21 @@ class UPnPDeviceServer(BaseComponent):
         self.config_id = 1
         
         # Open the database for uuid persistence 
-        self._uuid_db = anydbm.open(os.path.join(path, 'upnp_uuids'), 'c')
+        try:
+            # Some people encounter problems on some boxes when opening 
+            # the db file
+            self._uuid_db = anydbm.open(os.path.join(path, 'upnp_uuids'), 'c')
+        except:
+            self.fire(Log(logging.WARN, "Could not determine type db type of "
+                          + os.path.join(path, 'upnp_uuids')))
+            try:
+                os.remove(os.path.join(path, 'upnp_uuids'))
+                self._uuid_db = anydbm.open \
+                    (os.path.join(path, 'upnp_uuids'), 'c')
+            except:
+                self.fire(Log(logging.WARN, "Giving up on "
+                          + os.path.join(path, 'upnp_uuids')))
+                
 
     def register(self, parent):
         super(UPnPDeviceServer, self).register(parent)
