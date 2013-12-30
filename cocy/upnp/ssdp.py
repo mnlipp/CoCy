@@ -33,6 +33,8 @@ from circuits_bricks.misc import ComponentQuery
 from circuits.core.events import Event
 from circuits.web.controllers import Controller
 from email.utils import formatdate
+from circuits_bricks.app.logger import Log
+import logging
 
 
 class SSDPTranceiver(BaseComponent):
@@ -84,12 +86,18 @@ class SSDPSender(BaseComponent):
         # fill the UPnP templates.
         self._message_env['BOOTID'] = self._boot_id
         self._message_env['SERVER'] = SERVER_HELLO
-        self.hostaddr = gethostbyname(gethostname())
-        if self.hostaddr.startswith("127.") and not "." in gethostname():
-            try:
-                self.hostaddr = gethostbyname(gethostname() + ".")
-            except:
-                pass
+        try:
+            self.hostaddr = gethostbyname(gethostname())
+            if self.hostaddr.startswith("127.") and not "." in gethostname():
+                try:
+                    self.hostaddr = gethostbyname(gethostname() + ".")
+                except:
+                    pass
+        except Exception as e:
+            self.fire(Log(logging.ERROR, \
+                "Failed to get host address: %s(%s)" \
+                % (type(e), str(e)), "logger"))
+            
 
     @handler("config_value", channel="configuration")
     def _on_config_value(self, section, option, value):
