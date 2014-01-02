@@ -19,7 +19,7 @@
 .. codeauthor:: mnl
 """
 from circuits.core.components import BaseComponent
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from circuits.core.handlers import handler
 from circuits.core.events import Event
 from circuits_bricks.app.logger import Log
@@ -229,6 +229,10 @@ class MediaPlayer(Provider):
         self._current_track = 0
         self._current_track_duration = 0
         self._volume = 0.25
+    
+    @abstractmethod
+    def supportedMediaTypes(self):
+        pass
     
     @handler("provider_updated")
     def _on_provider_updated_handler(self, provider, changed):

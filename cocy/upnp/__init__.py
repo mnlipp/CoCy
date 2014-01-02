@@ -28,8 +28,11 @@ UPNP_ROOTDEVICE = "upnp:rootdevice"
 UPNP_SERVICE_ID_PREFIX = "urn:upnp-org:serviceId:"
 UPNP_CONTROL_NS = "urn:schemas-upnp-org:control-1-0"
 UPNP_EVENT_NS = "urn:schemas-upnp-org:event-1-0"
+UPNP_METADATA_NS = "urn:schemas-upnp-org:metadata-1-0/upnp/"
 UPNP_AVT_EVENT_NS = "urn:schemas-upnp-org:metadata-1-0/AVT/"
 UPNP_RCS_EVENT_NS = "urn:schemas-upnp-org:metadata-1-0/RCS/"
+DIDL_LITE_NS = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"
+
 COCY_SERVICE_EXT = "urn:cocy-service-ext"
 
 SERVER_HELLO = (platform.system() + '/' + platform.release()

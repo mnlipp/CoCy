@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name = "cocy",
-    version = "0.1.9",
+    version = "0.1.10",
     author = "Michael N. Lipp",
     author_email = "mnl@mnl.de",
     description = ("A components library for UPnP."),

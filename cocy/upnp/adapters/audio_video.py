@@ -122,8 +122,9 @@ class ConnectionManagerController(UPnPServiceController):
     @upnp_service
     def GetProtocolInfo(self, **kwargs):
         self.fire(Log(logging.DEBUG, "GetProtocolInfo called"), "logger")
+        types = self.parent._provider.supportedMediaTypes()
         return [("Source", ""),
-                ("Sink", "http-get:*:audio/mpeg:*")]
+                ("Sink", ",".join(types))]
 
     @upnp_service
     def GetCurrentConnectionIDs(self, **kwargs):
