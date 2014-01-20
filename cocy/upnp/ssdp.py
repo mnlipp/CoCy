@@ -94,8 +94,9 @@ class SSDPSender(BaseComponent):
                 except:
                     pass
         except Exception as e:
-            self.fire(Log(logging.ERROR, \
-                "Failed to get host address: %s(%s)" % (type(e), str(e))))
+            self.fire(Log(logging.ERROR, "Failed to get host address: %s(%s)" \
+                          % (type(e), str(e))),
+                      "logger")
             
 
     @handler("config_value", channel="configuration")
