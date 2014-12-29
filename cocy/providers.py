@@ -336,6 +336,10 @@ class MediaPlayer(Provider):
         self.source_meta_data = meta_data
         self.tracks = 1
         self.current_track = 1
+        # This is from the DLNA specification but all control points
+        # seem to rely on this behaviour
+        self.next_source = ""
+        self.next_source_meta_data = ""
 
     @handler("prepare_next")
     @combine_events
