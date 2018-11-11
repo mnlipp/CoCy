@@ -44,7 +44,8 @@ CONFIG = {
 }
 
 class ErrorHandler(Component):
-    def exception(self, error_type, value, traceback, handler=None):
+    def exception(self, error_type, value, traceback, \
+                  fevent=None, handler=None):
         sys.exit();
 
 if __name__ == '__main__':

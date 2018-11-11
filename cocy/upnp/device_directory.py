@@ -20,12 +20,12 @@
 """
 from circuits.core.components import BaseComponent
 from circuits.core.handlers import handler
-from cocy.upnp.ssdp import SSDPTranceiver, UPnPSearchRequest, UPnPDeviceByeBye
+from cocy.upnp.ssdp import SSDPTranceiver, upnp_search_request, upnp_device_bye_bye
 from circuits.core.utils import findroot, flatten
 from cocy.upnp import UPNP_ROOTDEVICE, SSDP_DEVICE_SCHEMA
 from circuits_bricks.web import Client
 from circuits_bricks.core.timers import Timer
-from circuits.web.client import Request
+from circuits.web.client import request
 import httplib
 from xml.etree.ElementTree import XML
 from urlparse import urljoin
@@ -40,7 +40,7 @@ class UPnPDeviceDirectory(BaseComponent):
 
     @handler("started", channel="application")
     def _on_started(self, component):
-        self.fire(UPnPSearchRequest(), "ssdp")
+        self.fire(upnp_search_request(), "ssdp")
 
     @handler("upnp_device_alive", channel="*")
     def _on_device_alive \
@@ -90,9 +90,9 @@ class UPnPRootDevice(BaseComponent):
             self._client.close()
             self.unregister()
         self.addHandler(_on_error)
-        self.fire(Request("GET", self._location), self._client)
+        self.fire(request("GET", self._location), self._client)
         self._expiry_timer \
-            = Timer(max_age, UPnPDeviceByeBye(usn)).register(self)
+            = Timer(max_age, upnp_device_bye_bye(usn)).register(self)
 
     def _initialize(self, xml_src):
         data = XML(xml_src)

@@ -35,6 +35,11 @@ class DummyPlayer(providers.MediaPlayer):
         super(DummyPlayer, self).__init__(self.manifest)
         self._timer = None
 
+    def supportedMediaTypes(self):
+        return ["http-get:*:audio/mpeg:*", "http-get:*:audio/ogg:*",
+                "http-get:*:audio/3gpp:*", "http-get:*:video/3gpp:*",
+                "http-get:*:audio/3gpp2:*", "http-get:*:video/3gpp2:*"]
+    
     @handler("provider_updated")
     def _on_provider_updated_handler(self, provider, changed):
         if "state" in changed:
@@ -44,7 +49,7 @@ class DummyPlayer(providers.MediaPlayer):
                 if self._timer:
                     self._timer.unregister()
                 self._timer = Timer(self.current_track_duration, 
-                                    MediaPlayer.EndOfMedia()).register(self)
+                                    MediaPlayer.end_of_media()).register(self)
             elif state == "IDLE":
                 if self._timer:
                     self._timer.unregister()

@@ -32,19 +32,19 @@ import anydbm
 import os
 from xml.etree.ElementTree import Element, QName, SubElement
 from cocy.upnp import UPNP_CONTROL_NS
-from circuits.web.errors import HTTPError
+from circuits.web.errors import httperror
 from cocy.soaplib import ns_soap_env
 from cocy.misc import buildSoapResponse
 import logging
-from circuits_bricks.app.logger import Log
+from circuits_bricks.app.logger import log
 
 
-class DeviceAvailable(Event):
-    name = "device_available"
+class device_available(Event):
+    pass
     
 
-class DeviceUnavailable(Event):
-    name = "device_unavailable"
+class device_unavailable(Event):
+    pass
 
 
 class UPnPDeviceServer(BaseComponent):
@@ -86,14 +86,14 @@ class UPnPDeviceServer(BaseComponent):
             # the db file
             self._uuid_db = anydbm.open(os.path.join(path, 'upnp_uuids'), 'c')
         except:
-            self.fire(Log(logging.WARN, "Could not determine type db type of "
+            self.fire(log(logging.WARN, "Could not determine type db type of "
                           + os.path.join(path, 'upnp_uuids')))
             try:
                 os.remove(os.path.join(path, 'upnp_uuids'))
                 self._uuid_db = anydbm.open \
                     (os.path.join(path, 'upnp_uuids'), 'c')
             except:
-                self.fire(Log(logging.WARN, "Giving up on "
+                self.fire(log(logging.WARN, "Giving up on "
                           + os.path.join(path, 'upnp_uuids')))
                 
 
@@ -117,7 +117,7 @@ class UPnPDeviceServer(BaseComponent):
         device.register(self)
         self._devices.append(device)
         if self._started:
-            self.fireEvent(DeviceAvailable(device))
+            self.fireEvent(device_available(device))
 
     @handler("unregister")
     def _on_unregister(self, component, manager):
@@ -129,7 +129,7 @@ class UPnPDeviceServer(BaseComponent):
     def _on_started (self, component):
         self._started = True
         for device in self._devices:
-            self.fireEvent(DeviceAvailable(device))
+            self.fireEvent(device_available(device))
 
     @handler("stopped", channel="*", priority=100, filter=True)
     def _on_stopped(self, event, component):
@@ -137,7 +137,7 @@ class UPnPDeviceServer(BaseComponent):
             return
         self._started = False
         for device in self._devices:
-            self.fireEvent(DeviceUnavailable(device))
+            self.fireEvent(device_unavailable(device))
         self._uuid_db.close()
         self.fireEvent(event)
         return True
@@ -147,7 +147,7 @@ class UPnPDeviceServer(BaseComponent):
         return [device.provider for device in getattr(self, "_devices", [])]
 
 
-class UPnPError(HTTPError):
+class UPnPError(httperror):
 
     _error_descs = { 401: "Invalid Action",
                      402: "Invalid Args",

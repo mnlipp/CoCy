@@ -17,8 +17,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from cocy.upnp.adapters.adapter import upnp_service, UPnPServiceController,\
-    upnp_state, Notification, UPnPServiceError
-from circuits_bricks.app.logger import Log
+    upnp_state, upnp_notification, UPnPServiceError
+from circuits_bricks.app.logger import log
 import logging
 from time import time
 from circuits_bricks.core.timers import Timer
@@ -59,7 +59,7 @@ class UPnPCombinedEventsServiceController(UPnPServiceController):
         if self._updates_locked or len(self._changes) == 0:
             return
         self._updates_locked = True
-        self.fire(Notification({ "LastChange": self.LastChange() }),
+        self.fire(upnp_notification({ "LastChange": self.LastChange() }),
                   self.notification_channel)
         self._changes.clear()
         Timer(0.2, Event.create("UnlockUpdates"), self).register(self)
@@ -92,12 +92,12 @@ class RenderingController(UPnPCombinedEventsServiceController):
         
     @upnp_service
     def GetVolume(self, **kwargs):
-        self.fire(Log(logging.DEBUG, "GetVolume called"), "logger")
+        self.fire(log(logging.DEBUG, "GetVolume called"), "logger")
         return [("CurrentVolume", str(int(self._provider.volume * 100)))]
 
     @upnp_service
     def SetVolume(self, **kwargs):
-        self.fire(Log(logging.DEBUG, 'SetVolume to '
+        self.fire(log(logging.DEBUG, 'SetVolume to '
                       + kwargs["DesiredVolume"]), "logger")
         self.fire(Event.create("SetVolume", 
                                int(kwargs["DesiredVolume"]) / 100.0),
@@ -121,14 +121,14 @@ class ConnectionManagerController(UPnPServiceController):
 
     @upnp_service
     def GetProtocolInfo(self, **kwargs):
-        self.fire(Log(logging.DEBUG, "GetProtocolInfo called"), "logger")
+        self.fire(log(logging.DEBUG, "GetProtocolInfo called"), "logger")
         types = self.parent._provider.supportedMediaTypes()
         return [("Source", ""),
                 ("Sink", ",".join(types))]
 
     @upnp_service
     def GetCurrentConnectionIDs(self, **kwargs):
-        self.fire(Log(logging.DEBUG, "GetCurrentConnectionIDs called"),
+        self.fire(log(logging.DEBUG, "GetCurrentConnectionIDs called"),
                   "logger")
         return [("GetCurrentConnectionIDs", self.CurrentConnectionIDs())]
 
@@ -204,14 +204,14 @@ class AVTransportController(UPnPCombinedEventsServiceController):
         
     @upnp_service
     def GetTransportInfo(self, **kwargs):
-        self.fire(Log(logging.DEBUG, "GetTransportInfo called"), "logger")
+        self.fire(log(logging.DEBUG, "GetTransportInfo called"), "logger")
         return [("CurrentTransportState", self._transport_state),
                 ("CurrentTransportStatus", "OK"),
                 ("CurrentSpeed", "1")]
 
     @upnp_service
     def GetMediaInfo(self, **kwargs):
-        self.fire(Log(logging.DEBUG, "GetMediaInfo called"), "logger")
+        self.fire(log(logging.DEBUG, "GetMediaInfo called"), "logger")
         return [("NrTracks", self._provider.tracks),
                 ("MediaDuration", "NOT_IMPLEMENTED" \
                  if self._provider.current_track_duration is None \
@@ -232,7 +232,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     @upnp_service
     def GetPositionInfo(self, **kwargs):
         rel_pos = self._provider.current_position()
-        self.fire(Log(logging.DEBUG, "GetPositionInfo called"), "logger")
+        self.fire(log(logging.DEBUG, "GetPositionInfo called"), "logger")
         info = [("Track", self._provider.current_track),
                 ("TrackDuration", "NOT_IMPLEMENTED" \
                  if self._provider.current_track_duration is None \
@@ -251,7 +251,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
 
     @upnp_service
     def SetAVTransportURI(self, **kwargs):
-        self.fire(Log(logging.DEBUG, 'AV Transport URI set to '
+        self.fire(log(logging.DEBUG, 'AV Transport URI set to '
                       + kwargs["CurrentURI"]), "logger")
         self.fire(Event.create("Load", kwargs["CurrentURI"], 
                                kwargs["CurrentURIMetaData"]),
@@ -260,7 +260,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     
     @upnp_service
     def SetNextAVTransportURI(self, **kwargs):
-        self.fire(Log(logging.DEBUG, 'Next AV Transport URI set to '
+        self.fire(log(logging.DEBUG, 'Next AV Transport URI set to '
                       + kwargs["NextURI"]), "logger")
         self.fire(Event.create("PrepareNext", kwargs["NextURI"], 
                                kwargs["NextURIMetaData"]),
@@ -269,21 +269,21 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     
     @upnp_service
     def Play(self, **kwargs):
-        self.fire(Log(logging.DEBUG, "Play called"), "logger")
+        self.fire(log(logging.DEBUG, "Play called"), "logger")
         self.fire(Event.create("Play"),
                   self.parent.provider.channel)
         return []
     
     @upnp_service
     def Pause(self, **kwargs):
-        self.fire(Log(logging.DEBUG, "Pause called"), "logger")
+        self.fire(log(logging.DEBUG, "Pause called"), "logger")
         self.fire(Event.create("Pause"),
                   self.parent.provider.channel)
         return []
     
     @upnp_service
     def Stop(self, **kwargs):
-        self.fire(Log(logging.DEBUG, "Stop called"), "logger")
+        self.fire(log(logging.DEBUG, "Stop called"), "logger")
         self.fire(Event.create("Stop"),
                   self.parent.provider.channel)
         return []
@@ -295,10 +295,10 @@ class AVTransportController(UPnPCombinedEventsServiceController):
             raise UPnPServiceError(701) 
         unit = kwargs["Unit"]
         if unit != "REL_TIME":
-            self.fire(Log(logging.DEBUG, "Seek called"), "logger")
+            self.fire(log(logging.DEBUG, "Seek called"), "logger")
             raise UPnPServiceError(710)
         target = kwargs["Target"]
-        self.fire(Log(logging.DEBUG, "Seek to " + target + " called"), "logger")
+        self.fire(log(logging.DEBUG, "Seek to " + target + " called"), "logger")
         target = target.split(":")
         target = int(target[0]) * 3600 + int(target[1]) * 60 + int(target[2])
         self.fire(Event.create("Seek", target),

@@ -22,18 +22,18 @@ from circuits.core.components import BaseComponent
 from circuits.core.handlers import handler
 from circuits_bricks.net.sockets import UDPMCastServer
 import os
-from circuits.io.events import Write
+from circuits.io.events import write
 import platform
 from socket import gethostname, gethostbyname
 import time
 from circuits_bricks.core.timers import Timer
 from cocy.upnp import SSDP_ADDR, SSDP_PORT, SSDP_SCHEMAS, UPNP_ROOTDEVICE,\
     SERVER_HELLO
-from circuits_bricks.misc import ComponentQuery
+from circuits_bricks.misc import component_query
 from circuits.core.events import Event
 from circuits.web.controllers import Controller
 from email.utils import formatdate
-from circuits_bricks.app.logger import Log
+from circuits_bricks.app.logger import log
 import logging
 
 
@@ -94,7 +94,7 @@ class SSDPSender(BaseComponent):
                 except:
                     pass
         except Exception as e:
-            self.fire(Log(logging.ERROR, "Failed to get host address: %s(%s)" \
+            self.fire(log(logging.ERROR, "Failed to get host address: %s(%s)" \
                           % (type(e), str(e))),
                       "logger")
             
@@ -138,7 +138,7 @@ class SSDPSender(BaseComponent):
         for service in upnp_device.services:
             self._send_service_message(upnp_device, service, "unavailable")
    
-    @handler("device_match")
+    @handler("upnp_device_match")
     def _on_device_match(self, upnp_device, inquirer, search_target):
         self._update_message_env(upnp_device)
         if search_target == "ssdp:all":
@@ -224,7 +224,7 @@ class SSDPSender(BaseComponent):
         for line in message.splitlines():
             headers = headers + line + "\r\n"
         headers += "\r\n"
-        self.fireEvent(Write(to, headers))
+        self.fireEvent(write(to, headers))
                     
     def _get_template(self, name):
         if self._template_cache.has_key(name):
@@ -235,53 +235,46 @@ class SSDPSender(BaseComponent):
         return template
 
 
-class UPnPDeviceMatch(Event):
-    name = "device_match"
+class upnp_device_match(Event):
     
     def __init__(self, component, inquirer, search_target):
-        super(UPnPDeviceMatch, self)\
+        super(upnp_device_match, self)\
             .__init__(component, inquirer, search_target)
 
 
-class UPnPDeviceQuery(ComponentQuery):
+class upnp_device_query(component_query):
     
     def __init__(self, query_function, inquirer, search_target):
-        super(UPnPDeviceQuery, self).__init__(query_function)
-        self.name = super(UPnPDeviceQuery, self).name
+        super(upnp_device_query, self).__init__(query_function)
+        self.name = super(upnp_device_query, self).name
         self._inquirer = inquirer
         self._search_target = search_target
 
     def decide(self, component):
-        res = super(UPnPDeviceQuery, self).decide(component)
+        res = super(upnp_device_query, self).decide(component)
         if res != None:
-            component.fire(UPnPDeviceMatch(component, self._inquirer, \
+            component.fire(upnp_device_match(component, self._inquirer, \
                                            self._search_target), "ssdp")
 
-class UPnPDeviceAlive(Event):
-    
-    name = "upnp_device_alive"
+class upnp_device_alive(Event):
     
     def __init__(self, location, notification_type, max_age, server, usn):
-        super(UPnPDeviceAlive, self).__init__ \
+        super(upnp_device_alive, self).__init__ \
             (location, notification_type, max_age, server, usn)
         self.channels = (usn,)
 
 
-class UPnPDeviceByeBye(Event):
-    
-    name = "upnp_device_bye_bye"
+class upnp_device_bye_bye(Event):
     
     def __init__(self, usn):
-        super(UPnPDeviceByeBye, self).__init__(usn)
+        super(upnp_device_bye_bye, self).__init__(usn)
         self.channels = (usn,)
 
 
-class UPnPSearchRequest(Event):
-    
-    name = "upnp_search_request"
+class upnp_search_request(Event):
     
     def __init__(self, search_target=UPNP_ROOTDEVICE, mx=1, **kwargs):
-        super(UPnPSearchRequest, self).__init__(search_target, mx, **kwargs)
+        super(upnp_search_request, self).__init__(search_target, mx, **kwargs)
 
 
 class SSDPReceiver(BaseComponent):
@@ -335,23 +328,23 @@ class SSDPReceiver(BaseComponent):
                 # TODO: add criteria
                 if search_target == "upnp:rootdevice":
                     f = lambda dev: dev.root_device
-                self.fire(UPnPDeviceQuery(f, address, search_target), "upnp")                        
+                self.fire(upnp_device_query(f, address, search_target), "upnp")                        
                 return
         elif istartswith(lines[0], "NOTIFY "):
             # A status change (or confirmation notification. Translate into
             # an event to inform however is interested in this.
             data = parse_lines(lines[1:])
             if data.sub_type == "ssdp:alive":
-                self.fire(UPnPDeviceAlive\
+                self.fire(upnp_device_alive\
                           (data.location, data.notification_type, 
                            data.max_age, data.server, data.usn))
             elif data.sub_type == "ssdp:byebye":
-                self.fire(UPnPDeviceByeBye(data.usn))
+                self.fire(upnp_device_bye_bye(data.usn))
         elif istartswith(lines[0], "HTTP/1.1 200 OK"):
             # A response to our own M-SEARCH. This is handled like a 
             # status change/confirmation (can only be an alive notification,
             # of course).
             data = parse_lines(lines[1:])
-            self.fire(UPnPDeviceAlive\
+            self.fire(upnp_device_alive\
                       (data.location, data.notification_type, 
                        data.max_age, data.server, data.usn))

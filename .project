@@ -3,6 +3,7 @@
 	<name>CoCy</name>
 	<comment></comment>
 	<projects>
+		<project>circuits</project>
 		<project>CircuitsBricks</project>
 		<project>CircuitsMinimalPortal</project>
 		<project>ResourceBundleTranslations</project>

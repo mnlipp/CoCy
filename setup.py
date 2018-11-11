@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name = "cocy",
-    version = "0.1.13",
+    version = "0.2",
     author = "Michael N. Lipp",
     author_email = "mnl@mnl.de",
     description = ("A components library for UPnP."),
@@ -40,5 +40,5 @@ setup(
                                     'templates/themes/default/*'],
                   'cocy.upnp': ['services/*.xml',
                                 'templates/*']},
-   install_requires = ['circuits == 2.1.0', 'Tenjin', 'rbtranslations', 'circuits-bricks'],
+   install_requires = ['circuits == 3.2', 'Tenjin', 'rbtranslations', 'circuits-bricks == 0.4.4'],
 )

@@ -22,7 +22,7 @@ from circuits.core.components import BaseComponent
 from abc import ABCMeta, abstractmethod
 from circuits.core.handlers import handler
 from circuits.core.events import Event
-from circuits_bricks.app.logger import Log
+from circuits_bricks.app.logger import log
 import logging
 from functools import wraps, update_wrapper
 
@@ -90,7 +90,7 @@ class Manifest(object):
         return self._description
 
     
-class ProviderUpdated(Event):
+class provider_updated(Event):
     pass
 
     
@@ -143,7 +143,7 @@ class Provider(BaseComponent):
     
     def _publish_updates(self):
         if len(self._provider_changed) > 0:
-            self.fire(ProviderUpdated(self, self._provider_changed))
+            self.fire(provider_updated(self, self._provider_changed))
             self._provider_changed = dict()
 
 
@@ -215,7 +215,7 @@ class MediaPlayer(Provider):
     
     channel = "media_player"
 
-    class EndOfMedia(Event):
+    class end_of_media(Event):
         pass
     
     def __init__(self, provider_manifest, **kwargs):
@@ -236,7 +236,7 @@ class MediaPlayer(Provider):
     
     @handler("provider_updated")
     def _on_provider_updated_handler(self, provider, changed):
-        self.fire(Log(logging.DEBUG, str(provider) + " changed: "
+        self.fire(log(logging.DEBUG, str(provider) + " changed: "
                       + str(changed)), "logger")
     
     @property

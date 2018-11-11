@@ -24,7 +24,7 @@ from circuits.core.handlers import handler
 
 from soaplib.soap import from_soap
 
-class SOAPOperation(Event):
+class soap_operation(Event):
     """Soap Operation Event"""
 
 class SOAP(BaseComponent):

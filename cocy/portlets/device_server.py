@@ -37,9 +37,9 @@ class UPnPDeviceServerPortlet(TemplatePortlet):
              .ugettext("Published UPnP Devices"))
 
     def do_render(self, mime_type, mode, window_state, locales, url_generator, 
-                  invocation_id, context_exts = {}, globs_exts = {}, **kwargs):
+                  invocation_id, portal, context_exts = {}, globs_exts = {}, **kwargs):
         return super(UPnPDeviceServerPortlet, self)\
             .do_render(mime_type, mode, window_state, locales, url_generator,
-                       invocation_id, context_exts =
+                       invocation_id, portal, context_exts =
                        { "device_server": self._device_server })
 

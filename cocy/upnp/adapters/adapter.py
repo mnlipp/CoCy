@@ -32,9 +32,9 @@ from circuits.core.events import Event
 from circuits.core.handlers import handler
 from inspect import getmembers, ismethod
 from StringIO import StringIO
-from circuits_bricks.web.client import Client, Request
+from circuits_bricks.web.client import Client, request
 from cocy.upnp.service import UPnPService
-from circuits_bricks.app.logger import Log
+from circuits_bricks.app.logger import log
 import logging
 from cocy import misc
 
@@ -241,7 +241,7 @@ class UPnPDeviceController(Controller):
         return self.description
 
 
-class Notification(Event):
+class upnp_notification(Event):
     pass
 
 
@@ -264,7 +264,7 @@ class UPnPSubscription(BaseController):
     def _on_registered(self, component, parent):
         if component != self:
             return
-        @handler("notification", channel=parent.notification_channel)
+        @handler("upnp_notification", channel=parent.notification_channel)
         def _on_notification_handler(self, state_vars):
             self._on_notification(state_vars)
         self.addHandler(_on_notification_handler)
@@ -274,7 +274,7 @@ class UPnPSubscription(BaseController):
             state_vars[name] = method()
         if len(state_vars) > 0:
             self._on_notification(state_vars)
-        self.fire(Log(logging.DEBUG, "Subscribtion for " + str(self._callbacks)
+        self.fire(log(logging.DEBUG, "Subscribtion for " + str(self._callbacks)
                       + " on " + self.parent.notification_channel 
                       + " created"), "logger")
 
@@ -292,10 +292,10 @@ class UPnPSubscription(BaseController):
         writer.write("<?xml version='1.0' encoding='utf-8'?>")
         ElementTree(root).write(writer, encoding="utf-8")
         body = writer.getvalue()
-        self.fire(Log(logging.DEBUG, "Notifying " 
+        self.fire(log(logging.DEBUG, "Notifying " 
                       + self._callbacks[self._used_callback]
                       + " about " + str(state_vars)), "logger")
-        self.fire(Request("NOTIFY", self._callbacks[self._used_callback], body,
+        self.fire(request("NOTIFY", self._callbacks[self._used_callback], body,
                           { "CONTENT-TYPE": "text/xml; charset=\"utf-8\"",
                             "NT": "upnp:event",
                             "NTS": "upnp:propchange",
@@ -306,7 +306,7 @@ class UPnPSubscription(BaseController):
     @handler("upnp_subs_end")
     def _on_subs_end(self):
         self.unregister()
-        self.fire(Log(logging.DEBUG, "Subscribtion for " + str(self._callbacks)
+        self.fire(log(logging.DEBUG, "Subscribtion for " + str(self._callbacks)
                       + " on " + self.parent.notification_channel
                       + " cancelled"), "logger")
 
@@ -314,7 +314,7 @@ class UPnPSubscription(BaseController):
     def _on_renewal(self, timeout):
         self._expiry_timer.interval = timeout
         self._expiry_timer.reset()
-        self.fire(Log(logging.DEBUG, "Subscribtion for " + str(self._callbacks)
+        self.fire(log(logging.DEBUG, "Subscribtion for " + str(self._callbacks)
                       + " on " + self.parent.notification_channel
                       + " renewed"), "logger")
 
@@ -359,7 +359,7 @@ class UPnPServiceController(BaseController):
             if method._evented_by is not None:
                 state_vars[name] = changed[method._evented_by]
         if len(state_vars) > 0:
-            self.fire(Notification(state_vars), self.notification_channel)
+            self.fire(upnp_notification(state_vars), self.notification_channel)
 
     @expose("control")
     def _control(self, *args):
@@ -370,7 +370,7 @@ class UPnPServiceController(BaseController):
             action_args[node.tag] = node.text
         method = getattr(self, action, None)
         if method is None or not getattr(method, "_is_upnp_service", False):
-            self.fire(Log(logging.INFO, 'Action ' + action 
+            self.fire(log(logging.INFO, 'Action ' + action 
                           + " not implemented"), "logger")
             return UPnPError(self.request, self.response, 401)
         try:
