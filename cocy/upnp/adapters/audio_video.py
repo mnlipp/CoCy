@@ -62,7 +62,7 @@ class UPnPCombinedEventsServiceController(UPnPServiceController):
         self.fire(upnp_notification({ "LastChange": self.LastChange() }),
                   self.notification_channel)
         self._changes.clear()
-        Timer(0.2, Event.create("UnlockUpdates"), self).register(self)
+        Timer(0.2, Event.create("unlock_updates"), self).register(self)
 
     @handler("unlock_updates")
     def _on_unlock_updates(self, *args):
@@ -99,7 +99,7 @@ class RenderingController(UPnPCombinedEventsServiceController):
     def SetVolume(self, **kwargs):
         self.fire(log(logging.DEBUG, 'SetVolume to '
                       + kwargs["DesiredVolume"]), "logger")
-        self.fire(Event.create("SetVolume", 
+        self.fire(Event.create("set_volume", 
                                int(kwargs["DesiredVolume"]) / 100.0),
                   self.parent.provider.channel)
         return []
@@ -253,7 +253,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     def SetAVTransportURI(self, **kwargs):
         self.fire(log(logging.DEBUG, 'AV Transport URI set to '
                       + kwargs["CurrentURI"]), "logger")
-        self.fire(Event.create("Load", kwargs["CurrentURI"], 
+        self.fire(Event.create("load", kwargs["CurrentURI"], 
                                kwargs["CurrentURIMetaData"]),
                   self.parent.provider.channel)
         return []
@@ -262,7 +262,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     def SetNextAVTransportURI(self, **kwargs):
         self.fire(log(logging.DEBUG, 'Next AV Transport URI set to '
                       + kwargs["NextURI"]), "logger")
-        self.fire(Event.create("PrepareNext", kwargs["NextURI"], 
+        self.fire(Event.create("prepare_next", kwargs["NextURI"], 
                                kwargs["NextURIMetaData"]),
                   self.parent.provider.channel)
         return []
@@ -270,21 +270,21 @@ class AVTransportController(UPnPCombinedEventsServiceController):
     @upnp_service
     def Play(self, **kwargs):
         self.fire(log(logging.DEBUG, "Play called"), "logger")
-        self.fire(Event.create("Play"),
+        self.fire(Event.create("play"),
                   self.parent.provider.channel)
         return []
     
     @upnp_service
     def Pause(self, **kwargs):
         self.fire(log(logging.DEBUG, "Pause called"), "logger")
-        self.fire(Event.create("Pause"),
+        self.fire(Event.create("pause"),
                   self.parent.provider.channel)
         return []
     
     @upnp_service
     def Stop(self, **kwargs):
         self.fire(log(logging.DEBUG, "Stop called"), "logger")
-        self.fire(Event.create("Stop"),
+        self.fire(Event.create("stop"),
                   self.parent.provider.channel)
         return []
     
@@ -301,7 +301,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
         self.fire(log(logging.DEBUG, "Seek to " + target + " called"), "logger")
         target = target.split(":")
         target = int(target[0]) * 3600 + int(target[1]) * 60 + int(target[2])
-        self.fire(Event.create("Seek", target),
+        self.fire(Event.create("seek", target),
                   self.parent.provider.channel)
         return []
     
