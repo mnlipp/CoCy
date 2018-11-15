@@ -23,7 +23,6 @@ from circuits.core.handlers import handler
 from circuits_bricks.net.sockets import UDPMCastServer
 import os
 from circuits.io.events import write
-import platform
 from socket import gethostname, gethostbyname
 import time
 from circuits_bricks.core.timers import Timer
