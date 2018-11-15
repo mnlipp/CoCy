@@ -25,7 +25,6 @@ from circuits_bricks.web import ScopeDispatcher, ScopedChannel
 from circuits.web.controllers import BaseController, expose
 from circuits.core.events import Event
 from circuits.core.utils import findroot, flatten
-from cocy.upnp.service import UPnPService
 from cocy.upnp.ssdp import SSDPTranceiver
 from cocy.providers import Provider
 import anydbm
