@@ -105,3 +105,15 @@ def _fixup_element_prefixes(elem, uri_map, memo):
         if name:
             elem.set(name, value)
             del elem.attrib[key]
+            
+    
+def duration_to_secs(duration):
+    secPart = duration.split(".")[0]
+    hms = secPart.split(":")
+    return 3600 * int(hms[0]) + 60 * int(hms[1]) + int(hms[2])
+
+def secs_to_duration(secs):
+    return "%d:%02d:%02d" % (int(secs / 3600), 
+                             int(int(secs) % 3600 / 60),
+                             int(secs) % 60)
+                

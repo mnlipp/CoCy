@@ -20,7 +20,6 @@ from cocy.upnp.adapters.adapter import upnp_service, UPnPServiceController,\
     upnp_state, upnp_notification, UPnPServiceError
 from circuits_bricks.app.logger import log
 import logging
-from time import time
 from circuits_bricks.core.timers import Timer
 from circuits.core.events import Event
 from circuits.core.handlers import handler
@@ -28,6 +27,7 @@ from StringIO import StringIO
 from xml.etree.ElementTree import Element, QName, ElementTree, SubElement
 from cocy.upnp import UPNP_AVT_EVENT_NS, UPNP_RCS_EVENT_NS
 from cocy import misc
+from cocy.misc import duration_to_secs, secs_to_duration
 
 class UPnPCombinedEventsServiceController(UPnPServiceController):
     
@@ -149,11 +149,6 @@ class AVTransportController(UPnPCombinedEventsServiceController):
         self.addHandler(_on_provider_updated_handler)
         # @handler("end_of_media", channel=self._provider.channel)
 
-    def _format_duration(self, duration):
-        return "%d:%02d:%02d" % (int(duration / 3600), 
-                                 int(int(duration) % 3600 / 60),
-                                 int(duration) % 60)
-
     def _map_changes(self, changed):
         for name, value in changed.items():
             if name == "source":
@@ -175,11 +170,11 @@ class AVTransportController(UPnPCombinedEventsServiceController):
             if name == "current_track_duration":
                 self.addChange("CurrentTrackDuration", 
                                "NOT_IMPLEMENTED" if value is None \
-                               else self._format_duration(value), 
+                               else secs_to_duration(value), 
                                auto_flush=False)
                 self.addChange("CurrentMediaDuration", 
                                "NOT_IMPLEMENTED" if value is None \
-                               else self._format_duration(value), 
+                               else secs_to_duration(value), 
                                auto_flush=False)
                 continue
             if name == "state":
@@ -215,7 +210,7 @@ class AVTransportController(UPnPCombinedEventsServiceController):
         return [("NrTracks", self._provider.tracks),
                 ("MediaDuration", "NOT_IMPLEMENTED" \
                  if self._provider.current_track_duration is None \
-                 else self._format_duration \
+                 else secs_to_duration \
                     (self._provider.current_track_duration)),
                 ("CurrentURI", self._provider.source),
                 ("CurrentURIMetaData", "NOT_IMPLEMENTED" \
@@ -236,17 +231,18 @@ class AVTransportController(UPnPCombinedEventsServiceController):
         info = [("Track", self._provider.current_track),
                 ("TrackDuration", "NOT_IMPLEMENTED" \
                  if self._provider.current_track_duration is None \
-                 else self._format_duration \
+                 else secs_to_duration \
                     (self._provider.current_track_duration)),
                 ("TrackMetaData", "NOT_IMPLEMENTED" \
                  if self._provider.source_meta_data is None \
                  else self._provider.source_meta_data),
                 ("TrackURI", self._provider.source),
                 ("RelTime", "NOT_IMPLEMENTED" if rel_pos is None \
-                 else self._format_duration(rel_pos)),
-                ("AbsTime", "NOT_IMPLEMENTED"),
-                ("RelCount", 2147483647),
-                ("AbsCount", 2147483647)]
+                 else secs_to_duration(rel_pos)),
+                ("AbsTime", "NOT_IMPLEMENTED" if rel_pos is None \
+                 else secs_to_duration(rel_pos)),
+                ("RelCount", 2147483647 if rel_pos is None else rel_pos),
+                ("AbsCount", 2147483647 if rel_pos is None else rel_pos)]
         return info
 
     @upnp_service
@@ -294,15 +290,13 @@ class AVTransportController(UPnPCombinedEventsServiceController):
                 or self._transport_state == "STOPPED"):
             raise UPnPServiceError(701) 
         unit = kwargs["Unit"]
-        if unit != "REL_TIME":
+        if unit != "REL_TIME" and unit != "ABS_TIME":
             self.fire(log(logging.DEBUG, "Seek called"), "logger")
             raise UPnPServiceError(710)
         target = kwargs["Target"]
         self.fire(log(logging.DEBUG, "Seek to " + target + " called"), "logger")
-        target = target.split(":")
-        target = int(target[0]) * 3600 + int(target[1]) * 60 + int(target[2])
+        target = duration_to_secs(target)
         self.fire(Event.create("seek", target),
                   self.parent.provider.channel)
         return []
-    
     

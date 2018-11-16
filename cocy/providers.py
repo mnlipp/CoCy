@@ -24,7 +24,7 @@ from circuits.core.handlers import handler
 from circuits.core.events import Event
 from circuits_bricks.app.logger import log
 import logging
-from functools import wraps, update_wrapper
+from functools import update_wrapper
 
 class Manifest(object):
     """
@@ -227,7 +227,7 @@ class MediaPlayer(Provider):
         self._next_source_meta_data = ""
         self._tracks = 0
         self._current_track = 0
-        self._current_track_duration = 0
+        self._current_track_duration = None
         self._volume = 0.25
     
     @abstractmethod
@@ -366,7 +366,7 @@ class MediaPlayer(Provider):
     @handler("end_of_media")
     @combine_events
     def _on_end_of_media(self):
-        self.current_track_duration = 0
+        self.current_track_duration = None
         if self.next_source:
             if self.next_source == self.source:
                 # Make sure this is fired as change, even if next is current
