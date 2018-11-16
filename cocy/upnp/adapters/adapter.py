@@ -19,7 +19,8 @@
 from circuits.core.components import BaseComponent
 from circuits_bricks.misc.compquery import Queryable
 from uuid import uuid4
-from xml.etree.ElementTree import ElementTree, Element, SubElement, QName
+from xml.etree import ElementTree
+from xml.etree.ElementTree import Element, SubElement, QName
 from circuits_bricks.web.dispatchers.dispatcher import ScopedChannel
 from cocy.upnp import SSDP_DEVICE_SCHEMA, SSDP_SCHEMAS, UPNP_EVENT_NS,\
     UPNP_SERVICE_ID_PREFIX, SERVER_HELLO
@@ -31,7 +32,6 @@ from circuits_bricks.core.timers import Timer
 from circuits.core.events import Event
 from circuits.core.handlers import handler
 from inspect import getmembers, ismethod
-from StringIO import StringIO
 from circuits_bricks.web.client import Client, request
 from cocy.upnp.service import UPnPService
 from circuits_bricks.app.logger import log
@@ -186,11 +186,9 @@ class UPnPDeviceController(Controller):
         desc = getattr(self, props.desc_gen)\
             (adapter, config_id, props, service_insts)
         misc.set_ns_prefixes(desc, { "": SSDP_DEVICE_SCHEMA })
-        writer = StringIO()
-        writer.write("<?xml version='1.0' encoding='utf-8'?>")
-        ElementTree(desc).write(writer, encoding="utf-8")
-        self.description = writer.getvalue()
-
+        self.description = u"<?xml version='1.0' encoding='utf-8'?>" \
+            + ElementTree.tostring(desc, encoding="utf-8").decode("utf-8")
+ 
     def _common_device_desc(self, adapter, config_id, props, services):
         root = Element("{%s}root" % SSDP_DEVICE_SCHEMA,
                        attrib = {"configId": str(config_id)})
@@ -286,12 +284,11 @@ class UPnPSubscription(BaseController):
             if isinstance(value, bool):
                 val.text = "1" if value else "0"
             else:
-                val.text = str(value)
+                val.text = unicode(value)
         misc.set_ns_prefixes(root, { "": UPNP_EVENT_NS })
-        writer = StringIO()
-        writer.write("<?xml version='1.0' encoding='utf-8'?>")
-        ElementTree(root).write(writer, encoding="utf-8")
-        body = writer.getvalue()
+        # Keep body as str for safe request handling
+        body = "<?xml version='1.0' encoding='utf-8'?>" \
+            + ElementTree.tostring(root, encoding="utf-8")
         self.fire(log(logging.DEBUG, "Notifying " 
                       + self._callbacks[self._used_callback]
                       + " about " + str(state_vars)), "logger")
@@ -380,7 +377,7 @@ class UPnPServiceController(BaseController):
         result = Element("{%s}%sResponse" % (action_ns, action))
         for name, value in out_args:
             arg = SubElement(result, name)
-            arg.text = str(value)
+            arg.text = unicode(value)
         return buildSoapResponse(self.response, result)
 
     @expose("sub")

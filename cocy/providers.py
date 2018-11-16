@@ -25,6 +25,7 @@ from circuits.core.events import Event
 from circuits_bricks.app.logger import log
 import logging
 from functools import update_wrapper
+from xml.etree import ElementTree
 
 class Manifest(object):
     """
@@ -302,12 +303,26 @@ class MediaPlayer(Provider):
     @property
     def source_meta_data(self):
         return getattr(self, "_source_meta_data", None)
-
+    
     @source_meta_data.setter
     @evented(auto_publish=True)
     def source_meta_data(self, meta_data):
         self._source_meta_data = meta_data
+        self._source_meta_dom = None
 
+    @property
+    def source_meta_dom(self):
+        if self._source_meta_dom is None:
+            data = self.source_meta_data
+            if data is None:
+                return data
+            if isinstance(data, basestring):
+                if isinstance(data, unicode):
+                    # data = data.encode("ascii", "xmlcharrefreplace")
+                    data = data.encode("utf-8")
+                self._source_meta_dom = ElementTree.fromstring(data)
+        return self._source_meta_dom    
+    
     @property
     def next_source(self):
         return getattr(self, "_next_source", None)

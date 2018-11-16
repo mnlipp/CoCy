@@ -19,9 +19,9 @@
 .. codeauthor:: mnl
 """
 from cocy.soaplib.soap import from_soap
-from xml.etree.ElementTree import ElementTree, Element, SubElement, QName
+from xml.etree import ElementTree
+from xml.etree.ElementTree import Element, SubElement, QName
 import cocy.soaplib
-from StringIO import StringIO
 
 def splitQTag (tag):
     tag_ns, tag_name = tag.split("}", 1)
@@ -60,11 +60,9 @@ def buildSoapResponse(response, body):
     soap_body = SubElement(envelope, '{%s}Body' % cocy.soaplib.ns_soap_env)
     soap_body.append(body)
 
-    writer = StringIO()
     response.headers["Content-Type"] = "text/xml; charset=utf-8"
-    writer.write("<?xml version='1.0' encoding='utf-8'?>")
-    ElementTree(envelope).write(writer, encoding="utf-8")
-    return writer.getvalue()
+    return "<?xml version='1.0' encoding='utf-8'?>" + \
+        ElementTree.tostring(envelope, encoding="utf-8")
 
 
 def set_ns_prefixes(elem, prefix_map):

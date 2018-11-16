@@ -18,13 +18,12 @@
 
 .. codeauthor:: mnl
 """
-from cocy.providers import Manifest, MediaPlayer
+from cocy.providers import Manifest, MediaPlayer, combine_events
 from cocy import providers
 from circuits.core.handlers import handler
 from circuits_bricks.core.timers import Timer
 import time
 from circuits.core.events import Event
-from xml import etree
 from xml.etree.ElementTree import QName
 from cocy.misc import duration_to_secs
 
@@ -49,27 +48,37 @@ class DummyPlayer(providers.MediaPlayer):
     
     @handler("provider_updated")
     def _on_provider_updated_handler(self, provider, changed):
-        if "state" in changed:
-            state = changed["state"]
-            if state == "PLAYING":
+        if "source" in changed:
+            if self.state == "PLAYING":
                 if self._timer:
                     self._timer.unregister()
+                from cocy.upnp import DIDL_LITE_NS
+                duration = self.source_meta_dom.find(
+                    str(QName(DIDL_LITE_NS, "item")) + "/" + str(QName(DIDL_LITE_NS, "res"))) \
+                    .get("duration")
+                self.current_track_duration = duration_to_secs(duration)
                 self._timer = Timer(self.current_track_duration, 
                                     end_reached()).register(self)
-            elif state == "IDLE":
+        if "state" in changed:
+            state = changed["state"]
+            if state == "IDLE":
                 if self._timer:
                     self._timer.unregister()
 
     @handler("play", override=True)
+    @combine_events
     def _on_play(self):
-        if self.source is None:
+        if self.source is None or self.state == "PLAYING":
             return
-        desc = etree.ElementTree.fromstring(self.source_meta_data)
+        if self._timer:
+            self._timer.unregister()
         from cocy.upnp import DIDL_LITE_NS
-        duration = desc.find(str(QName(DIDL_LITE_NS, "item")) + "/"
-                                 + str(QName(DIDL_LITE_NS, "res"))) \
-                                 .get("duration")
+        duration = self.source_meta_dom.find(
+            str(QName(DIDL_LITE_NS, "item")) + "/" + str(QName(DIDL_LITE_NS, "res"))) \
+            .get("duration")
         self.current_track_duration = duration_to_secs(duration)
+        self._timer = Timer(self.current_track_duration, 
+                            end_reached()).register(self)
         self.state = "PLAYING"
 
     @handler("end_reached")
@@ -78,6 +87,14 @@ class DummyPlayer(providers.MediaPlayer):
             self._timer.unregister()
             self._timer = None
         self.fire(MediaPlayer.end_of_media())
+
+    @handler("seek", override=True)
+    def _on_seek(self, position):
+        if self.state != "PLAYING":
+            return
+        self._timer.unregister()
+        self._timer = Timer(self.current_track_duration - position, 
+                            end_reached()).register(self)
 
     def current_position(self):
         if self._timer is None:

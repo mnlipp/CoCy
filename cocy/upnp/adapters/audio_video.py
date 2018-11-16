@@ -23,8 +23,8 @@ import logging
 from circuits_bricks.core.timers import Timer
 from circuits.core.events import Event
 from circuits.core.handlers import handler
-from StringIO import StringIO
-from xml.etree.ElementTree import Element, QName, ElementTree, SubElement
+from xml.etree import ElementTree
+from xml.etree.ElementTree import Element, QName, SubElement
 from cocy.upnp import UPNP_AVT_EVENT_NS, UPNP_RCS_EVENT_NS
 from cocy import misc
 from cocy.misc import duration_to_secs, secs_to_duration
@@ -46,12 +46,10 @@ class UPnPCombinedEventsServiceController(UPnPServiceController):
         for name, value in self._changes.items():
             SubElement(inst, QName(self._event_ns, name), { "val": value })
         misc.set_ns_prefixes(root, { "": self._event_ns })
-        writer = StringIO()
-        ElementTree(root).write(writer, encoding="utf-8")
-        return writer.getvalue()
+        return ElementTree.tostring(root, encoding="utf-8").decode("utf-8")
 
     def addChange(self, variable, value, auto_flush=True):
-        self._changes[variable] = str(value)
+        self._changes[variable] = unicode(value)
         if auto_flush:
             self.flushChanges()
 
