@@ -23,6 +23,13 @@ from cocy import providers
 from circuits.core.handlers import handler
 from circuits_bricks.core.timers import Timer
 import time
+from circuits.core.events import Event
+from xml import etree
+from xml.etree.ElementTree import QName
+from cocy.misc import duration_to_secs
+
+class end_reached(Event):
+    pass
 
 class DummyPlayer(providers.MediaPlayer):
     '''
@@ -45,14 +52,32 @@ class DummyPlayer(providers.MediaPlayer):
         if "state" in changed:
             state = changed["state"]
             if state == "PLAYING":
-                self.current_track_duration = 60
                 if self._timer:
                     self._timer.unregister()
                 self._timer = Timer(self.current_track_duration, 
-                                    MediaPlayer.end_of_media()).register(self)
+                                    end_reached()).register(self)
             elif state == "IDLE":
                 if self._timer:
                     self._timer.unregister()
+
+    @handler("play", override=True)
+    def _on_play(self):
+        if self.source is None:
+            return
+        desc = etree.ElementTree.fromstring(self.source_meta_data)
+        from cocy.upnp import DIDL_LITE_NS
+        duration = desc.find(str(QName(DIDL_LITE_NS, "item")) + "/"
+                                 + str(QName(DIDL_LITE_NS, "res"))) \
+                                 .get("duration")
+        self.current_track_duration = duration_to_secs(duration)
+        self.state = "PLAYING"
+
+    @handler("end_reached")
+    def _on_end_reached(self, event):
+        if self._timer:
+            self._timer.unregister()
+            self._timer = None
+        self.fire(MediaPlayer.end_of_media())
 
     def current_position(self):
         if self._timer is None:
